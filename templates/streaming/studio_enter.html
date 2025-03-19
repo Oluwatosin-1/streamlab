@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container-fluid my-3">
+  <h2 class="mb-3">Streamlab Advanced Studio</h2>
+
+  <!-- Explanation paragraph changes if user is purely local record mode -->
+  {% if record_mode %}
+    <p class="text-muted">
+      Local Recording Mode: camera preview & recording – no live chat or streaming required.
+    </p>
+  {% else %}
+    <p class="text-muted">
+      A unified studio for local recording, scheduling videos, or live streaming – 
+      with or without connected platforms or RTMP config. 
+      If you have a connected social account and a valid config, you can Go Live!
+    </p>
+  {% endif %}
+
+  <div class="row">
+    <!-- Main Video/Preview Area -->
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Camera / Preview</h5>
+          <span class="badge bg-success" id="stream-status">Initializing...</span>
+        </div>
+        <div class="card-body bg-dark text-white text-center p-0" style="position: relative;">
+          <video
+            id="localVideo"
+            autoplay
+            playsinline
+            muted
+            style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"
+          ></video>
+          <div 
+            id="noCameraText" 
+            class="text-center text-white" 
+            style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"
+          >
+            <h6>No camera detected or permission denied.</h6>
+          </div>
+        </div>
+        <!-- Camera Controls -->
+        <div class="card-footer d-flex justify-content-between">
+          <button class="btn btn-sm btn-outline-secondary" id="stopCamBtn">Stop Cam</button>
+          <button class="btn btn-sm btn-outline-primary" id="startCamBtn">Start Cam</button>
+        </div>
+      </div>
+
+      <!-- Overlays / Scenes -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Overlays & Layout</h6>
+        </div>
+        <div class="card-body">
+          <p>
+            Manage overlays, scenes, or add text/images here. 
+            Applies to local record or live stream.
+          </p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm">Add Overlay</button>
+            <button class="btn btn-outline-secondary btn-sm">Switch Scene</button>
+            <button class="btn btn-outline-info btn-sm">Manage Layouts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar for Chat & Participants -->
+    <div class="col-md-4">
+      {% if not record_mode %}
+      <!-- Chat Section (fetch from server if platform is connected and user is live) -->
+      <div class="card mb-3" style="max-height: 220px;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Live Chat</h6>
+          <button class="btn btn-sm btn-outline-primary" id="refreshChatBtn">Refresh</button>
+        </div>
+        <div class="card-body" id="chatContainer" style="overflow-y: auto;">
+          <p class="text-muted">Chat messages will appear here.</p>
+        </div>
+        <div class="card-footer">
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Type a message..." id="chatMessage">
+            <button class="btn btn-primary" id="sendChatBtn">Send</button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Participants or Scenes -->
+      <div class="card" style="max-height: 220px;">
+        <div class="card-header">
+          <h6 class="mb-0">Participants / Scenes</h6>
+        </div>
+        <div class="card-body" style="overflow-y: auto;">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Host (You)
+              <span class="badge bg-success">Camera On</span>
+            </li>
+            <!-- Additional participants go here if multi-person streaming -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer: Go Live / Stop / Recording -->
+  <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+    {% if social_accounts|length > 0 and config and not record_mode %}
+      <form method="post" action="{% url 'streaming:go_live' %}">
+        {% csrf_token %}
+        <button class="btn btn-success" id="goLiveBtn">Go Live</button>
+      </form>
+      <form method="post" action="{% url 'streaming:stop_live' %}">
+        {% csrf_token %}
+        <button class="btn btn-danger" id="stopBtn">Stop Live</button>
+      </form>
+    {% else %}
+      <!-- No live config / in record mode. Could be hidden or show a message. -->
+    {% endif %}
+
+    <!-- Local record controls always available -->
+    <button class="btn btn-outline-info" id="startRecordBtn">Start Recording</button>
+    <button class="btn btn-outline-warning" id="stopRecordBtn" disabled>Stop Recording</button>
+  </div>
+</div>
+
+<script>
+  let localVideo = document.getElementById("localVideo");
+  let noCameraText = document.getElementById("noCameraText");
+  let streamStatus = document.getElementById("stream-status");
+
+  let stopCamBtn = document.getElementById("stopCamBtn");
+  let startCamBtn = document.getElementById("startCamBtn");
+  let goLiveBtn = document.getElementById("goLiveBtn");
+  let stopBtn = document.getElementById("stopBtn");
+  let startRecordBtn = document.getElementById("startRecordBtn");
+  let stopRecordBtn = document.getElementById("stopRecordBtn");
+
+  // Chat elements
+  let refreshChatBtn = document.getElementById("refreshChatBtn");
+  let chatContainer = document.getElementById("chatContainer");
+  let sendChatBtn = document.getElementById("sendChatBtn");
+  let chatMessage = document.getElementById("chatMessage");
+
+  let localStream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+
+  // Unique session ID for reference
+  const sessionUuid = "{{ session_uuid }}";
+
+  async function startCamera() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+      streamStatus.textContent = "Camera On";
+      noCameraText.style.display = "none";
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      noCameraText.style.display = "block";
+      streamStatus.textContent = "Camera Off";
+    }
+  }
+
+  function stopCamera() {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+      streamStatus.textContent = "Camera Off";
+      noCameraText.style.display = "block";
+    }
+  }
+
+  function startRecording() {
+    if (!localStream) {
+      alert("Please start camera before recording.");
+      return;
+    }
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(localStream, { mimeType: 'video/webm; codecs=vp9' });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        recordedChunks.push(e.data);
+      }
+    };
+    mediaRecorder.onstop = handleRecordingStop;
+
+    mediaRecorder.start();
+    alert("Recording started!");
+    startRecordBtn.disabled = true;
+    stopRecordBtn.disabled = false;
+  }
+
+  async function handleRecordingStop() {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    recordedChunks = [];
+
+    // Upload to server
+    try {
+      const formData = new FormData();
+      formData.append("video_file", blob, `recorded_stream_${sessionUuid}.webm`);
+
+      const response = await fetch("/streaming/upload_recorded/", {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        throw new Error(`Upload failed. Status: ${response.status}`);
+      }
+      alert("Recording uploaded successfully!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Error uploading recording. See console for details.");
+    }
+    mediaRecorder = null;
+    startRecordBtn.disabled = false;
+    stopRecordBtn.disabled = true;
+  }
+
+  function stopRecording() {
+    if (!mediaRecorder) {
+      alert("No active recording to stop.");
+      return;
+    }
+    mediaRecorder.stop();
+  }
+
+  // Basic chat fetching logic
+  async function fetchChatMessages() {
+    // Suppose we have an endpoint that returns JSON messages
+    try {
+      let res = await fetch("/streaming/fetch_chat_messages/?session_uuid=" + sessionUuid);
+      if (!res.ok) throw new Error("Failed to fetch chat");
+      let data = await res.json();
+      // data could be an array of messages
+      displayChatMessages(data);
+    } catch (err) {
+      console.error("Chat fetch error:", err);
+    }
+  }
+
+  function displayChatMessages(messages) {
+    if (!messages.length) {
+      chatContainer.innerHTML = "<p class='text-muted'>No messages yet.</p>";
+      return;
+    }
+    let html = "";
+    for (let msg of messages) {
+      html += `<div><strong>${msg.user}:</strong> ${msg.text}</div>`;
+    }
+    chatContainer.innerHTML = html;
+  }
+
+  // Send a new chat message
+  async function sendChat() {
+    const msg = chatMessage.value.trim();
+    if (!msg) return;
+    try {
+      let res = await fetch("/streaming/send_chat_message/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: JSON.stringify({ session_uuid, text: msg })
+      });
+      if (!res.ok) throw new Error("Chat send error");
+      chatMessage.value = "";
+      // Optionally re-fetch chat
+      fetchChatMessages();
+    } catch (err) {
+      console.error("sendChat error:", err);
+    }
+  }
+
+  // On page load
+  window.addEventListener("load", () => {
+    startCamera();
+    // If user wants to auto-fetch chat every 5s, we can do:
+    // setInterval(fetchChatMessages, 5000);
+  });
+
+  // Camera controls
+  stopCamBtn.addEventListener("click", () => stopCamera());
+  startCamBtn.addEventListener("click", () => startCamera());
+
+  // Recording controls
+  startRecordBtn.addEventListener("click", () => startRecording());
+  stopRecordBtn.addEventListener("click", () => stopRecording());
+
+  // Chat controls
+  if (refreshChatBtn) refreshChatBtn.addEventListener("click", () => fetchChatMessages());
+  if (sendChatBtn) sendChatBtn.addEventListener("click", () => sendChat());
+
+</script>
+{% endblock %}

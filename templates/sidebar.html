@@ -1,0 +1,197 @@
+{% load static %}
+<aside class="sidebar sidebar-base sidebar-white sidebar-default navs-rounded-all" id="first-tour"
+       data-toggle="main-sidebar" data-sidebar="responsive">
+
+    <!-- Sidebar Header with Logo and Toggle -->
+    <div class="sidebar-header d-flex align-items-center justify-content-start">
+        <a href="{% url 'dashboard:index' %}" class="navbar-brand">
+            <!-- Logo Section -->
+            <img class="logo-normal" src="{% static 'images/logo.png' %}" alt="Logo">
+            <img class="logo-normal logo-white" src="{% static 'images/logo-white.png' %}" alt="Logo White">
+            <img class="logo-full" src="{% static 'images/logo-full.png' %}" alt="Logo Full">
+            <img class="logo-full logo-full-white" src="{% static 'images/logo-full-white.png' %}" alt="Logo Full White">
+            <!-- End Logo -->
+        </a>
+        <div class="sidebar-toggle" data-toggle="sidebar" data-active="true">
+            <i class="chevron-right">
+                <svg xmlns="http://www.w3.org/2000/svg" height="1.2rem" viewBox="0 0 512 512" fill="white">
+                    <path d="M470.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160
+                             c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 256
+                             265.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3
+                             0l160-160zm-352 160l160-160c12.5-12.5 12.5-32.8
+                             0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3
+                             0s-12.5 32.8 0 45.3L210.7 256 73.4 393.4
+                             c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0z"/>
+                </svg>
+            </i>
+            <i class="chevron-left">
+                <svg xmlns="http://www.w3.org/2000/svg" height="1.2rem" viewBox="0 0 512 512" fill="white"
+                     transform="rotate(180)">
+                    <path d="M470.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160
+                             c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7
+                             256 265.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8
+                             12.5 45.3 0l160-160zm-352 160l160-160c12.5-12.5
+                             12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5
+                             -45.3 0s-12.5 32.8 0 45.3L210.7 256 73.4 393.4
+                             c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0z"/>
+                </svg>
+            </i>
+        </div>
+    </div>
+    <!-- End Sidebar Header -->
+
+    <!-- Sidebar Body -->
+    <div class="sidebar-body pt-0 data-scrollbar">
+        <!-- User Info Section -->
+        <div class="sidebar-user-info p-3 border-bottom">
+            <div class="d-flex align-items-center">
+                <img src="{% static 'images/avatar.png' %}" alt="User Avatar"
+                     class="avatar rounded-circle me-2" width="40">
+                <div>
+                    <h6 class="mb-0">{{ request.user.email }}</h6>
+                    <small>Default</small>
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="#" class="btn btn-sm btn-outline-primary me-1">Invite Members</a>
+                <a href="#" class="btn btn-sm btn-outline-secondary">Workspaces</a>
+            </div>
+        </div>
+        <!-- End User Info -->
+
+        <!-- Navigation Menu -->
+        <div class="sidebar-list">
+            <ul class="navbar-nav iq-main-menu" id="sidebar-menu">
+
+                <!-- Home -->
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'dashboard:index' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Home">
+                            <svg width="20" viewBox="0 0 24 24" fill="none"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <path opacity="0.4"
+                                      d="M16.0756 2H19.4616C20.8639 2 22.0001 3.14585 22.0001
+                                         4.55996V7.97452C22.0001 9.38864 20.8639 10.5345 19.4616
+                                         10.5345H16.0756C14.6734 10.5345 13.5371 9.38864 13.5371
+                                         7.97452V4.55996C13.5371 3.14585 14.6734 2 16.0756 2Z"
+                                      fill="currentColor"></path>
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                      d="M4.53852 2H7.92449C9.32676 2 10.463 3.14585 10.463
+                                         4.55996V7.97452C10.463 9.38864 9.32676 10.5345 7.92449
+                                         10.5345H4.53852C3.13626 10.5345 2 9.38864 2 7.97452V4.55996C2
+                                         3.14585 3.13626 2 4.53852 2ZM4.53852 13.4655H7.92449C9.32676
+                                         13.4655 10.463 14.6114 10.463 16.0255V19.44C10.463 20.8532
+                                         9.32676 22 7.92449 22H4.53852C3.13626 22 2 20.8532 2
+                                         19.44V16.0255C2 14.6114 3.13626 13.4655 4.53852 13.4655ZM19.4615
+                                         13.4655H16.0755C14.6732 13.4655 13.537 14.6114 13.537 16.0255V19.44C13.537
+                                         20.8532 14.6732 22 16.0755 22H19.4615C20.8637 22 22 20.8532 22
+                                         19.44V16.0255C22 14.6114 20.8637 13.4655 19.4615 13.4655Z"
+                                      fill="currentColor"></path>
+                            </svg>
+                        </i>
+                        <span class="item-name">Home</span>
+                    </a>
+                </li>
+
+                <!-- Past Streams -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:past_streams' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Past Streams">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" opacity="0.4"/>
+                                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">Past Streams</span>
+                    </a>
+                </li>
+
+                <!-- Video Storage -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:video_storage' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Video Storage">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="3" width="18" height="14" opacity="0.4"/>
+                                <path d="M21 7l-6 4 6 4V7z" fill="currentColor"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">Video Storage</span>
+                    </a>
+                </li>
+
+                <!-- Channels with Count Badge -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'streaming:manage_channels' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Channels">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4 4h16v16H4z" opacity="0.4"/>
+                                <path d="M8 8h8v8H8z" fill="currentColor"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">
+                            Channels
+                            <span class="badge bg-primary ms-1">4</span>
+                        </span>
+                    </a>
+                </li>
+
+                <!-- Analytics -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:analytics' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Analytics">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="10" width="4" height="10" opacity="0.4"/>
+                                <rect x="10" y="6" width="4" height="14"/>
+                                <rect x="17" y="2" width="4" height="18" opacity="0.4"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">Analytics</span>
+                    </a>
+                </li>
+
+                <!-- Account Settings -->
+                <li class="nav-item mt-3">
+                    <a class="nav-link" href="{% url 'account_settings' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Account Settings">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="8" r="4" opacity="0.4"/>
+                                <path d="M6 20c0-3.3137 2.6863-6 6-6s6 2.6863 6
+                                         6" stroke="currentColor" stroke-width="2"
+                                      stroke-linecap="round"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">Account Settings</span>
+                    </a>
+                </li>
+
+                <!-- Dashboard Settings -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:settings' %}">
+                        <i class="icon" data-bs-toggle="tooltip" data-bs-placement="right"
+                           data-bs-original-title="Dashboard Settings">
+                            <svg width="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2a10 10 0 100 20 10 10 0 000-20z" opacity="0.4"/>
+                                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </i>
+                        <span class="item-name">Dashboard Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- End of Sidebar Navigation -->
+    </div>
+
+    <!-- Sidebar Footer (if needed) -->
+    <div class="sidebar-footer">
+        <!-- Additional footer buttons or info -->
+    </div>
+</aside>

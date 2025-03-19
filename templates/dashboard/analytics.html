@@ -1,0 +1,41 @@
+{# dashboard/templates/dashboard/analytics.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container-fluid my-4">
+  <h2 class="mb-3">Analytics Overview</h2>
+  <p class="text-muted">High-level analytics and metrics for your streaming platform.</p>
+
+  <!-- Example row showing some stats or charts -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Overall Views</h6>
+        </div>
+        <div class="card-body">
+          <p>Display chart or metrics here. Example: total views in the last 30 days.</p>
+          <!-- Insert your chart library or data visualizations -->
+          <div class="text-center">
+            <img src="{% static 'images/placeholder_chart.png' %}" alt="Placeholder Chart" style="max-width: 100%;">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Another sample card -->
+    <div class="col-md-6">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Engagement Rate</h6>
+        </div>
+        <div class="card-body">
+          <p>Example metric about audience engagement.</p>
+          <div class="text-center">
+            <img src="{% static 'images/placeholder_chart.png' %}" alt="Placeholder Chart" style="max-width: 100%;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

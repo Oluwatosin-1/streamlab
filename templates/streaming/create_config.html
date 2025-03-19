@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-5 text-center">
+  <h2 class="mb-4">Create a New Stream</h2>
+  <p class="text-muted">Please select how you want to start your stream.</p>
+</div>
+
+<!-- The "modal-like" overlay -->
+<div class="modal fade show" id="newStreamModal" tabindex="-1" aria-labelledby="newStreamModalLabel" aria-modal="true" style="display:block;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="newStreamModalLabel">Create a new stream</h5>
+        <!-- "Close" button can redirect back to the dashboard or just close the page -->
+        <a href="{% url 'dashboard:index' %}" class="btn-close" aria-label="Close"></a>
+      </div>
+      
+      <!-- Modal Body: Four big options -->
+      <div class="modal-body">
+        <div class="list-group">
+          <!-- 1) Streamlab Studio -->
+          <a href="{% url 'streaming:studio_draft' %}" 
+             class="list-group-item list-group-item-action d-flex align-items-center">
+            <div class="me-3">
+              <img src="{% static 'images/icons/studio-icon.png' %}" alt="Studio" style="width:30px;">
+            </div>
+            <div>
+              <strong>Streamlab Studio</strong><br>
+              <small>Stream directly from your browser</small>
+            </div>
+          </a>
+
+          <!-- 2) Encoder / RTMP -->
+          <a href="{% url 'streaming:rtmp_draft' %}" 
+             class="list-group-item list-group-item-action d-flex align-items-center">
+            <div class="me-3">
+              <img src="{% static 'images/icons/rtmp-icon.png' %}" alt="RTMP" style="width:30px;">
+            </div>
+            <div>
+              <strong>Encoder | RTMP</strong><br>
+              <small>Go live from OBS, Zoom, vMix, etc.</small>
+            </div>
+          </a>
+
+          <!-- 3) Video or Playlist -->
+          <a href="{% url 'streaming:schedule_video_session' %}" 
+             class="list-group-item list-group-item-action d-flex align-items-center">
+            <div class="me-3">
+              <img src="{% static 'images/icons/video-icon.png' %}" alt="Video" style="width:30px;">
+            </div>
+            <div>
+              <strong>Video or Playlist</strong><br>
+              <small>Schedule videos or stream recordings</small>
+            </div>
+          </a>
+
+          <!-- 4) Record Audio & Video -->
+          <a href="{% url 'streaming:local_record_session' %}" 
+             class="list-group-item list-group-item-action d-flex align-items-center">
+            <div class="me-3">
+              <img src="{% static 'images/icons/record-icon.png' %}" alt="Record" style="width:30px;">
+            </div>
+            <div>
+              <strong>Record Audio & Video</strong><br>
+              <small>Without going live</small>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <a href="{% url 'dashboard:index' %}" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

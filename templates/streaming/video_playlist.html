@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-4">
+  <h2>Schedule Video / Playlist</h2>
+  <p class="text-muted">
+    Plan a video or playlist session without connecting any social accounts or RTMP config.
+  </p>
+
+  <div class="card p-3 mt-3">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Schedule Video</button>
+    </form>
+  </div>
+
+  <!-- Provide a link to the minimal studio for local preview -->
+  <div class="mt-4 text-end">
+    <a href="{% url 'streaming:studio_enter' %}" class="btn btn-success">
+      Enter Minimal Studio
+    </a>
+  </div>
+</div>
+{% endblock %}

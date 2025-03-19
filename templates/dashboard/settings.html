@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-4">
+  <h2>Dashboard Settings</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <!-- Example fields: theme, notifications -->
+    <div class="mb-3">
+      <label for="theme" class="form-label">Theme</label>
+      <select name="theme" id="theme" class="form-select">
+        <option value="light" {% if dashboard_settings.theme == "light" %}selected{% endif %}>Light</option>
+        <option value="dark" {% if dashboard_settings.theme == "dark" %}selected{% endif %}>Dark</option>
+      </select>
+    </div>
+
+    <div class="form-check mb-3">
+      <input 
+        class="form-check-input" 
+        type="checkbox" 
+        name="notifications_enabled" 
+        id="notifications_enabled"
+        {% if dashboard_settings.notifications_enabled %}checked{% endif %}
+      >
+      <label class="form-check-label" for="notifications_enabled">Enable Notifications</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+</div>
+{% endblock %}

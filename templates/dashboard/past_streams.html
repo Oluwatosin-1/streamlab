@@ -1,0 +1,46 @@
+{# dashboard/templates/dashboard/past_streams.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container-fluid my-4">
+  <h2 class="mb-3">Past Streams</h2>
+  <p class="text-muted">Historical list of previous live streams. Review or re-watch any completed session.</p>
+
+  <!-- Example table or card layout for past streams. -->
+  <div class="card">
+    <div class="card-header">
+      <h6 class="mb-0">Past Streams List</h6>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Duration</th>
+            <th>Viewers</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Populate with real data in your view or from your database -->
+          <tr>
+            <td>Sample Stream #1</td>
+            <td>2025-02-05</td>
+            <td>1h 25m</td>
+            <td>2.4k</td>
+            <td><a href="#" class="btn btn-sm btn-outline-primary">Details</a></td>
+          </tr>
+          <tr>
+            <td>Sample Stream #2</td>
+            <td>2025-03-01</td>
+            <td>2h 10m</td>
+            <td>3.1k</td>
+            <td><a href="#" class="btn btn-sm btn-outline-primary">Details</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

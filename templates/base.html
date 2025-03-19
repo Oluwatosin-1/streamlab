@@ -1,0 +1,28 @@
+<!doctype html>{% load static %}
+<html lang="en" data-bs-theme="dark" data-bs-theme-color="default" dir="ltr">
+    <head>
+        {% include 'head.html' %}
+    </head>
+    <body class="  ">
+        <!-- loader Start -->
+        <div id="loading">
+            <div class="loader simple-loader">
+                <div class="loader-body ">
+                    <img src="{% static 'images/loader-unscreen.gif' %}" class="image-loader img-fluid" />
+                </div>
+            </div>    
+        </div>
+        <!-- loader END -->
+        {% include 'sidebar.html' %}
+        <main class="main-content">
+            <div class="position-relative ">
+               {% include 'header.html' %}
+            </div>
+            {% block content %}{% endblock %}
+
+            {% include 'footer.html' %}
+        </main>
+        <!-- Wrapper End-->
+        {% include 'js.html' %}
+    </body>
+</html>

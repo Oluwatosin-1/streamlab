@@ -1,0 +1,71 @@
+{# dashboard/templates/dashboard/account_settings.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container-fluid my-4">
+  <h2 class="mb-3">Account Settings</h2>
+  <p class="text-muted">Update your personal details, social links, or other preferences.</p>
+
+  <div class="row">
+    <!-- Left column: Basic Profile Info -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">Profile Information</h6>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="#">
+            <!-- Example fields -->
+            <div class="mb-3">
+              <label for="username" class="form-label">User Name:</label>
+              <input type="text" name="username" class="form-control" id="username" value="{{ request.user.username }}">
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email Address:</label>
+              <input type="email" name="email" class="form-control" id="email" value="{{ request.user.email }}">
+            </div>
+            <div class="mb-3">
+              <label for="language" class="form-label">Preferred Language:</label>
+              <select name="language" id="language" class="form-select">
+                <option value="en" selected>English</option>
+                <option value="fr">French</option>
+                <option value="es">Spanish</option>
+                <!-- etc. -->
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+            <button type="reset" class="btn btn-secondary">Cancel</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Social Media Info -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">Social Media</h6>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="#">
+            <div class="mb-3">
+              <label for="facebook" class="form-label">Facebook URL:</label>
+              <input type="text" class="form-control" id="facebook" name="facebook" placeholder="https://facebook.com/YourPage">
+            </div>
+            <div class="mb-3">
+              <label for="twitter" class="form-label">Twitter URL:</label>
+              <input type="text" class="form-control" id="twitter" name="twitter" placeholder="https://twitter.com/YourHandle">
+            </div>
+            <div class="mb-3">
+              <label for="instagram" class="form-label">Instagram URL:</label>
+              <input type="text" class="form-control" id="instagram" name="instagram" placeholder="https://instagram.com/YourPage">
+            </div>
+            <button type="submit" class="btn btn-primary">Update Social Info</button>
+            <button type="reset" class="btn btn-secondary">Cancel</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{# streaming/templates/streaming/settings.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-4">
+  <h3>Settings</h3>
+  <div class="row">
+    <div class="col-md-3">
+      <!-- Vertical Nav or Tabs for sections -->
+      <div class="list-group" id="settingsNav" role="tablist">
+        <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#stream-tab" role="tab">
+          Stream
+        </a>
+        <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#backup-tab" role="tab">
+          Backup Stream
+        </a>
+        <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#pull-tab" role="tab">
+          Pull Links
+        </a>
+        <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#embed-player-tab" role="tab">
+          Embed web player
+        </a>
+        <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#embed-chat-tab" role="tab">
+          Embed chat
+        </a>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <form method="POST" class="card">
+        {% csrf_token %}
+        <div class="card-body">
+          <!-- Tab content -->
+          <div class="tab-content">
+            
+            <!-- Stream Tab -->
+            <div class="tab-pane fade show active" id="stream-tab" role="tabpanel">
+              <h5>Stream (RTMP / Stream Key)</h5>
+              <div class="mb-3">
+                <label>Server URL</label>
+                <input type="text" name="rtmp_url" class="form-control"
+                       value="{{ form.rtmp_url.value|default_if_none:'' }}">
+              </div>
+              <div class="mb-3">
+                <label>Stream key</label>
+                <input type="text" name="stream_key" class="form-control"
+                       value="{{ form.stream_key.value|default_if_none:'' }}">
+              </div>
+              <small class="text-muted">Copy & paste these into your streaming software (OBS, Zoom, etc.).</small>
+            </div>
+
+            <!-- Backup Stream Tab -->
+            <div class="tab-pane fade" id="backup-tab" role="tabpanel">
+              <h5>Backup Stream</h5>
+              <div class="mb-3">
+                <label>Backup RTMP URL</label>
+                <input type="text" name="backup_rtmp_url" class="form-control"
+                       value="{{ form.backup_rtmp_url.value|default_if_none:'' }}">
+              </div>
+              <div class="mb-3">
+                <label>Backup Stream Key</label>
+                <input type="text" name="backup_stream_key" class="form-control"
+                       value="{{ form.backup_stream_key.value|default_if_none:'' }}">
+              </div>
+              <small class="text-muted">Use this if your primary server fails.</small>
+            </div>
+
+            <!-- Pull Links Tab -->
+            <div class="tab-pane fade" id="pull-tab" role="tabpanel">
+              <h5>Pull Links</h5>
+              <textarea name="pull_links" class="form-control" rows="4">
+                {{ form.pull_links.value|default_if_none:'' }}
+              </textarea>
+              <small class="text-muted">For advanced usage, if you have any pull links for your streaming server.</small>
+            </div>
+
+            <!-- Embed web player Tab -->
+            <div class="tab-pane fade" id="embed-player-tab" role="tabpanel">
+              <h5>Embed web player</h5>
+              <p>Get embed code to engage your website visitors with live video.</p>
+              <input type="text" name="embed_player_url" class="form-control mb-2"
+                     value="{{ form.embed_player_url.value|default_if_none:'' }}"
+                     placeholder="https://player.streamlab.io?token=1234abcd...">
+              <small>Copy this link into an iframe tag to embed the player on your site.</small>
+              <pre class="bg-light p-3 mt-3">
+&lt;iframe src="{{ form.embed_player_url.value|default_if_none:'https://player.streamlab.io' }}"
+        width="640" height="360" frameborder="0"&gt;&lt;/iframe&gt;
+              </pre>
+            </div>
+
+            <!-- Embed chat Tab -->
+            <div class="tab-pane fade" id="embed-chat-tab" role="tabpanel">
+              <h5>Embed Chat</h5>
+              <p>Display comments from all enabled channels at once.</p>
+              <input type="text" name="embed_chat_url" class="form-control mb-2"
+                     value="{{ form.embed_chat_url.value|default_if_none:'' }}"
+                     placeholder="https://chat.streamlab.io/embed?token=xxxxxx">
+              <small>Copy this link into OBS or your site to display chat as an overlay or open it in the browser.</small>
+              <pre class="bg-light p-3 mt-3">
+&lt;iframe src="{{ form.embed_chat_url.value|default_if_none:'https://chat.streamlab.io/embed?token=xxxxxx' }}"
+        width="400" height="600" frameborder="0"&gt;&lt;/iframe&gt;
+              </pre>
+            </div>
+          </div>
+        </div>
+        <!-- End card-body -->
+
+        <!-- Footer Buttons -->
+        <div class="card-footer d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

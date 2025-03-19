@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-4 text-center">
+  <h2>Manage Your Channels</h2>
+  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#channelsModal">
+    Open Channels
+  </button>
+</div>
+
+<!-- 1) Channels Modal -->
+<div class="modal fade" id="channelsModal" tabindex="-1" aria-labelledby="channelsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="channelsModalLabel">Channels</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body: List user channels -->
+      <div class="modal-body">
+        <p>Add your social media channels. Enable them inside each stream setup.</p>
+        
+        {% if user_channels_info %}
+          <ul class="list-group mb-3">
+            {% for item in user_channels_info %}
+              {% with channel=item.channel icon_url=item.icon_url %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center">
+                    {% if icon_url %}
+                      <img 
+                        src="{{ icon_url }}" 
+                        alt="{{ channel.platform|title }}" 
+                        style="height:20px;" 
+                        class="me-2"
+                      >
+                    {% endif %}
+                    <strong>{{ channel.platform|title }}</strong>
+                    {% if channel.access_token %}
+                      <span class="badge bg-success ms-2">Connected</span>
+                    {% else %}
+                      <span class="badge bg-secondary ms-2">Pending</span>
+                    {% endif %}
+                  </div>
+                  <!-- Remove or manage actions -->
+                  <form method="POST" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="channel_id" value="{{ channel.id }}">
+                    <button type="submit" name="action" value="remove" class="btn btn-sm btn-danger">
+                      Remove
+                    </button>
+                  </form>
+                </li>
+              {% endwith %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">No channels connected yet.</p>
+        {% endif %}
+        
+      </div>
+
+      <!-- Footer with "Add Channels" button -->
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn btn-success" 
+          data-bs-dismiss="modal" 
+          data-bs-toggle="modal" 
+          data-bs-target="#addChannelsModal"
+        >
+          + Add Channels
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2) Add New Channels Modal -->
+<div class="modal fade" id="addChannelsModal" tabindex="-1" aria-labelledby="addChannelsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="addChannelsModalLabel">Add new channels</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body: Display possible platforms to connect -->
+      <div class="modal-body">
+        <div class="row row-cols-2 g-2 text-center">
+          <!-- YOUTUBE -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'youtube' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.youtube }}" alt="YouTube" style="height:24px;">
+              <div>YouTube</div>
+            </a>
+          </div>
+
+          <!-- FACEBOOK -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'facebook' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.facebook }}" alt="Facebook" style="height:24px;">
+              <div>Facebook</div>
+            </a>
+          </div>
+
+          <!-- TWITCH -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'twitch' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.twitch }}" alt="Twitch" style="height:24px;">
+              <div>Twitch</div>
+            </a>
+          </div>
+
+          <!-- INSTAGRAM -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'instagram' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.instagram }}" alt="Instagram" style="height:24px;">
+              <div>Instagram</div>
+            </a>
+          </div>
+
+          <!-- TIKTOK -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'tiktok' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.tiktok }}" alt="Tiktok" style="height:24px;">
+              <div>TikTok</div>
+            </a>
+          </div>
+
+          <!-- TELEGRAM -->
+          <div class="col">
+            <a 
+              href="{% url 'streaming:connect_social' 'telegram' %}" 
+              class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center"
+            >
+              <img src="{{ platform_icons.telegram }}" alt="Telegram" style="height:24px;">
+              <div>Telegram</div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // When the page loads, automatically open the channels modal
+  document.addEventListener("DOMContentLoaded", () => {
+    const channelsModal = new bootstrap.Modal(document.getElementById('channelsModal'));
+    channelsModal.show();
+  });
+</script>
+
+{% endblock %}

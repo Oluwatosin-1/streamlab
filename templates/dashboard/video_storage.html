@@ -1,0 +1,38 @@
+{# dashboard/templates/dashboard/video_storage.html #}
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container-fluid my-4">
+  <h2 class="mb-3">Video Storage</h2>
+  <p class="text-muted">Manage your uploaded videos, recorded sessions, or other stored media here.</p>
+
+  <!-- Example layout showing videos -->
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <div class="card">
+        <div class="ratio ratio-16x9">
+          <img src="{% static 'images/placeholder_video_thumbnail.png' %}" class="card-img-top" alt="Thumb">
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">Recorded Session #1</h5>
+          <p class="card-text">Recorded on 2025-01-15</p>
+          <a href="#" class="btn btn-outline-primary btn-sm">Preview</a>
+        </div>
+      </div>
+    </div>
+    <!-- Repeat for more stored videos -->
+    <div class="col-md-4 mb-3">
+      <div class="card">
+        <div class="ratio ratio-16x9">
+          <img src="{% static 'images/placeholder_video_thumbnail.png' %}" class="card-img-top" alt="Thumb">
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">Recorded Session #2</h5>
+          <p class="card-text">Recorded on 2025-02-10</p>
+          <a href="#" class="btn btn-outline-primary btn-sm">Preview</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
