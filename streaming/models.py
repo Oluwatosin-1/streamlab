@@ -1,7 +1,8 @@
 # streaming/models.py
 
 from django.db import models
-from django.conf import settings 
+from django.conf import settings  
+import uuid 
 
 class StreamingConfiguration(models.Model):
     user = models.ForeignKey(
@@ -75,3 +76,17 @@ class ScheduledVideo(models.Model):
 
     def __str__(self):
         return self.title
+
+class ChatMessage(models.Model):
+    session_uuid = models.UUIDField(default=uuid.uuid4, help_text="Unique ID for the streaming session")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name="chat_messages"
+    )
+    text = models.TextField(help_text="The content of the chat message")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Time when the message was created")
+
+    def __str__(self):
+        # Returns a truncated version of the message along with the username
+        return f"{self.user.username}: {self.text[:30]}"

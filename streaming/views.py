@@ -8,6 +8,11 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required 
 
 from dashboard.models import DashboardSettings
 from payments.models import UserSubscription
@@ -528,3 +533,58 @@ def analytics(request):
         'some_analytics_data': {...}  # Replace with real data
     }
     return render(request, "dashboard/analytics.html", context)
+
+@login_required
+@csrf_exempt
+@require_POST
+def send_chat_message(request):
+    """
+    Accepts a POST request with JSON data containing a session_uuid and text.
+    Creates a new ChatMessage and returns its info as JSON.
+    """
+    try:
+        data = json.loads(request.body)
+        session_uuid = data.get("session_uuid")
+        text = data.get("text")
+        if not text:
+            return JsonResponse({"error": "Message text cannot be empty."}, status=400)
+
+        # Create the chat message
+        chat = ChatMessage.objects.create(
+            session_uuid=session_uuid,
+            user=request.user,
+            text=text
+        )
+        return JsonResponse({
+            "message": "Chat message sent successfully.",
+            "chat": {
+                "id": chat.id,
+                "user": chat.user.username,
+                "text": chat.text,
+                "created_at": chat.created_at.isoformat()
+            }
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+def fetch_chat_messages(request):
+    """
+    Accepts a GET request with a 'session_uuid' parameter.
+    Returns a JSON list of chat messages for that session ordered by creation time.
+    """
+    session_uuid = request.GET.get("session_uuid")
+    if not session_uuid:
+        return JsonResponse({"error": "Missing 'session_uuid' parameter."}, status=400)
+
+    try:
+        messages_qs = ChatMessage.objects.filter(session_uuid=session_uuid).order_by("created_at")
+        messages_list = [{
+            "id": msg.id,
+            "user": msg.user.username,
+            "text": msg.text,
+            "created_at": msg.created_at.isoformat()
+        } for msg in messages_qs]
+        return JsonResponse(messages_list, safe=False, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
