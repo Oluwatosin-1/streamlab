@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-5">
+  <h2 class="mb-4 text-center">Active RTMP Configurations</h2>
+  
+  {% if configs %}
+    <div class="row">
+      {% for config in configs %}
+      <div class="col-md-6">
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>{{ config.stream_title }}</strong> 
+            <span class="badge bg-info text-dark ms-2">{{ config.platform|title }}</span>
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>RTMP URL:</strong> {{ config.rtmp_url }}</p>
+            <p class="mb-1"><strong>Stream Key:</strong> {{ config.stream_key }}</p>
+            {% if config.backup_rtmp_url %}
+              <p class="mb-1"><strong>Backup URL:</strong> {{ config.backup_rtmp_url }}</p>
+              <p class="mb-1"><strong>Backup Key:</strong> {{ config.backup_stream_key }}</p>
+            {% endif %}
+            <p class="mb-1"><strong>Resolution:</strong> {{ config.resolution }}</p>
+            <p class="mb-3"><strong>Bitrate:</strong> {{ config.bitrate }}</p>
+
+            <!-- Edit link triggers the same rtmp_setup view but with a config_id -->
+            <a href="{% url 'streaming:rtmp_setup' %}?config_id={{ config.id }}" class="btn btn-sm btn-primary">
+              Edit
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center">
+      No active RTMP configurations found.
+    </div>
+  {% endif %}
+
+  <div class="text-center mt-4">
+    <a href="{% url 'streaming:config_list' %}" class="btn btn-secondary">Back to All Configs</a>
+  </div>
+</div>
+
+{% endblock %}

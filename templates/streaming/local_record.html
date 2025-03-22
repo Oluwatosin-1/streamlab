@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Record Audio & Video Locally</h2>
+  <p class="text-muted">Start recording without going live. When finished, upload your recording.</p>
+  
+  <!-- This section could be enhanced with JavaScript to trigger live recording -->
+  <div class="mb-4">
+    <button id="startRecording" class="btn btn-primary">Start Recording</button>
+    <button id="stopRecording" class="btn btn-danger d-none">Stop Recording</button>
+  </div>
+  
+  <!-- For now, provide a simple file upload form as a placeholder -->
+  <form method="post" enctype="multipart/form-data" action="{% url 'streaming:upload_recorded' %}">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="recorded_file" class="form-label">Upload Recorded File</label>
+      <input type="file" class="form-control" id="recorded_file" name="recorded_file" required>
+    </div>
+    <button type="submit" class="btn btn-success">Upload Recording</button>
+    <a href="{% url 'dashboard:index' %}" class="btn btn-secondary ms-2">Cancel</a>
+  </form>
+</div>
+
+<script>
+  // Optional: JavaScript stubs for starting and stopping recording
+  document.getElementById('startRecording').addEventListener('click', function(){
+    // Implement your recording logic here
+    this.classList.add('d-none');
+    document.getElementById('stopRecording').classList.remove('d-none');
+  });
+  document.getElementById('stopRecording').addEventListener('click', function(){
+    // Implement your stop logic here
+    this.classList.add('d-none');
+    document.getElementById('startRecording').classList.remove('d-none');
+  });
+</script>
+{% endblock %}

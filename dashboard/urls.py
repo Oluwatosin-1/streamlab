@@ -1,6 +1,7 @@
 from django.urls import path
 
-from streaming.views import analytics, video_storage
+from .views import analytics, video_storage
+ 
 from .views import dashboard, dashboard_drafts, dashboard_scheduled, dashboard_settings, past_streams
 
 app_name = "dashboard"

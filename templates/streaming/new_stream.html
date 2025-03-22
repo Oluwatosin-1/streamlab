@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
-
 <div class="container my-5 text-center">
   <h2 class="mb-4">Create a New Stream</h2>
   <p class="text-muted">Please select how you want to start your stream.</p>
@@ -15,7 +14,7 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <h5 class="modal-title" id="newStreamModalLabel">Create a new stream</h5>
-        <!-- "Close" button can redirect back to the dashboard or just close the page -->
+        <!-- "Close" button: redirects back to the dashboard -->
         <a href="{% url 'dashboard:index' %}" class="btn-close" aria-label="Close"></a>
       </div>
       
@@ -23,7 +22,7 @@
       <div class="modal-body">
         <div class="list-group">
           <!-- 1) Streamlab Studio -->
-          <a href="{% url 'streaming:studio_draft' %}" 
+          <a href="{% url 'streaming:manage_channels' %}" 
              class="list-group-item list-group-item-action d-flex align-items-center">
             <div class="me-3">
               <img src="{% static 'images/icons/studio-icon.png' %}" alt="Studio" style="width:30px;">
@@ -35,7 +34,7 @@
           </a>
 
           <!-- 2) Encoder / RTMP -->
-          <a href="{% url 'streaming:rtmp_draft' %}" 
+          <a href="{% url 'streaming:config_create' %}" 
              class="list-group-item list-group-item-action d-flex align-items-center">
             <div class="me-3">
               <img src="{% static 'images/icons/rtmp-icon.png' %}" alt="RTMP" style="width:30px;">
@@ -47,7 +46,7 @@
           </a>
 
           <!-- 3) Video or Playlist -->
-          <a href="{% url 'streaming:schedule_video_session' %}" 
+          <a href="{% url 'streaming:scheduled_video_create' %}" 
              class="list-group-item list-group-item-action d-flex align-items-center">
             <div class="me-3">
               <img src="{% static 'images/icons/video-icon.png' %}" alt="Video" style="width:30px;">
@@ -79,5 +78,4 @@
     </div>
   </div>
 </div>
-
 {% endblock %}

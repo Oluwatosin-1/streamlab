@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Stream Configuration Details</h2>
+  <div class="card">
+    <div class="card-header">
+      <h3>{{ configuration.stream_title }}</h3>
+    </div>
+    <div class="card-body">
+      <p><strong>Platform:</strong> {{ configuration.get_platform_display }}</p>
+      <p><strong>Description:</strong> {{ configuration.description }}</p>
+      <p><strong>RTMP URL:</strong> {{ configuration.rtmp_url }}</p>
+      <p><strong>Stream Key:</strong> {{ configuration.stream_key }}</p>
+      <p><strong>Backup RTMP URL:</strong> {{ configuration.backup_rtmp_url }}</p>
+      <p><strong>Backup Stream Key:</strong> {{ configuration.backup_stream_key }}</p>
+      <p><strong>Pull Links:</strong> {{ configuration.pull_links }}</p>
+      <p><strong>Embed Player URL:</strong> {{ configuration.embed_player_url }}</p>
+      <p><strong>Embed Chat URL:</strong> {{ configuration.embed_chat_url }}</p>
+      <p><strong>Status:</strong>
+        {% if configuration.is_active %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-secondary">Draft</span>
+        {% endif %}
+      </p>
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'streaming:config_update' configuration.id %}" class="btn btn-primary">Edit</a>
+      <a href="{% url 'streaming:config_delete' configuration.id %}" class="btn btn-danger">Delete</a>
+      <a href="{% url 'streaming:go_live' config_id=configuration.id %}" class="btn btn-success">Go Live</a>
+      <a href="{% url 'streaming:config_list' %}" class="btn btn-secondary">Back to List</a>
+    </div>
+    
+  </div>
+</div>
+{% endblock %}

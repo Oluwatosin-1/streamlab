@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-5">
+  <h2 class="mb-4 text-center">
+    Add {{ platform|title }} RTMP Destination
+  </h2>
+  
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header">
+          <h5 class="card-title mb-0">RTMP Configuration</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" novalidate>
+            {% csrf_token %}
+            <!-- You can display form errors at the top if desired -->
+            {% if form.errors %}
+            <div class="alert alert-danger">
+              Please correct the errors below.
+            </div>
+            {% endif %}
+            
+            <!-- Example of rendering all fields or each field manually -->
+            {{ form.as_p }}
+
+            <div class="mt-4 text-end">
+              <a href="{% url 'streaming:config_list' %}" class="btn btn-secondary me-2">Cancel</a>
+              <button type="submit" class="btn btn-primary">Save RTMP Destination</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

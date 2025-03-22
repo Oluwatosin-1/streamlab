@@ -42,7 +42,7 @@
         <a class="nav-link {% if active_tab == 'scheduled' %}active{% endif %}" href="{% url 'dashboard:scheduled' %}">Scheduled</a>
       </li>
     </ul>
-    <a href="{% url 'streaming:create_config' %}" class="btn btn-success">
+    <a href="{% url 'streaming:new_stream' %}" class="btn btn-success">
       <i class="fa fa-plus me-1"></i> New Stream
     </a>
   </div>
@@ -52,7 +52,6 @@
     <div class="alert alert-warning mb-4">
       <strong>Draft Mode:</strong> You are creating a {{ draft_type|title }} draft. Please complete the form below.
     </div>
-    <!-- You could optionally include a partial for the draft form here if needed. -->
   {% endif %}
 
   <!-- Main Row: Studio & RTMP Cards Side-by-Side -->
@@ -69,8 +68,8 @@
         </div>
         <!-- Studio Actions (top-right corner) -->
         <div class="position-absolute top-0 end-0 m-2 d-flex align-items-center">
-          <a href="{% url 'streaming:studio_draft' %}" class="btn btn-outline-secondary btn-sm me-2">Draft</a>
-          <a href="{% url 'streaming:studio_enter' %}" class="btn btn-outline-success btn-sm">Studio</a>
+          <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-secondary btn-sm me-2">Draft</a>
+          <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-success btn-sm">Studio</a>
         </div>
         <div class="card-header mt-5">
           <h4 class="card-title mb-0">Go live from your browser with Streamlab Studio</h4>
@@ -101,8 +100,11 @@
         </div>
         <!-- RTMP Actions (top-right corner) -->
         <div class="position-absolute top-0 end-0 m-2">
-          <a href="{% url 'streaming:rtmp_setup' %}" class="btn btn-outline-secondary btn-sm me-2">Setup</a>
-          <a href="{% url 'streaming:rtmp_draft' %}" class="btn btn-outline-warning btn-sm">Draft</a>
+          {% if streaming_configs and streaming_configs|length > 0 %}
+            <a href="{% url 'streaming:config_list' %}" class="btn btn-outline-secondary btn-sm me-2">Setup</a>
+          {% else %}
+            <a href="{% url 'streaming:config_create' %}" class="btn btn-outline-warning btn-sm">Draft</a>
+          {% endif %}
         </div>
         <div class="card-header mt-5">
           <h4 class="card-title mb-0">Stream via RTMP (OBS, Vmix, Zoom)</h4>
@@ -189,9 +191,9 @@
                 </td>
                 <td>
                   {% if cfg.is_active %}
-                    <a href="{% url 'streaming:rtmp_setup' %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <a href="{% url 'streaming:config_update' cfg.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
                   {% else %}
-                    <a href="{% url 'streaming:create_config' %}" class="btn btn-sm btn-outline-warning">Complete</a>
+                    <a href="{% url 'streaming:config_create' %}" class="btn btn-sm btn-outline-warning">Complete</a>
                   {% endif %}
                 </td>
               </tr>
@@ -203,7 +205,7 @@
     </div>
   {% else %}
     <div class="alert alert-secondary">
-      You have no streams yet. <a href="{% url 'streaming:create_config' %}">Create one now</a>.
+      You have no streams yet. <a href="{% url 'streaming:config_create' %}">Create one now</a>.
     </div>
   {% endif %}
 

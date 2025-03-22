@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">My Streaming Configurations</h2>
+  
+  <!-- Link to create a new configuration -->
+  <div class="mb-3">
+    <a href="{% url 'streaming:config_create' %}" class="btn btn-success">Create New Configuration</a>
+  </div>
+  
+  {% if configurations %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Platform</th>
+          <th>RTMP URL</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for config in configurations %}
+        <tr>
+          <td>{{ config.stream_title }}</td>
+          <td>{{ config.get_platform_display }}</td>
+          <td>{{ config.rtmp_url }}</td>
+          <td>
+            {% if config.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Draft</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'streaming:config_detail' config.pk %}" class="btn btn-sm btn-info">View</a>
+            <a href="{% url 'streaming:config_update' config.pk %}" class="btn btn-sm btn-warning">Edit</a>
+            <a href="{% url 'streaming:config_delete' config.pk %}" class="btn btn-sm btn-danger">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-warning">No streaming configurations found.</div>
+  {% endif %}
+</div>
+{% endblock %}

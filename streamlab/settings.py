@@ -152,7 +152,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# myproject/settings.py (or your environment variables)
+# steamlab/settings.py (or your environment variables)
 YOUTUBE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
 YOUTUBE_CLIENT_SECRET = "YOUR_GOOGLE_CLIENT_SECRET"
 

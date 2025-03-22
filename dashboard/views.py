@@ -138,3 +138,43 @@ def dashboard_settings(request):
     
     # If GET, just display the existing settings
     return render(request, "dashboard/settings.html", {"dashboard_settings": dash_settings})
+
+
+# NEW: Video Storage
+@login_required
+def video_storage(request):
+    """
+    Example placeholder for 'Video Storage' page. 
+    You might list user-uploaded or recorded videos stored on your platform.
+    """
+    dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
+    try:
+        user_subscription = request.user.subscription
+    except UserSubscription.DoesNotExist:
+        user_subscription = None
+
+    context = {
+        'dashboard_settings': dashboard_settings,
+        'user_subscription': user_subscription,
+    }
+    return render(request, "dashboard/video_storage.html", context)
+
+# NEW: Analytics
+@login_required
+def analytics(request):
+    """
+    Example 'Analytics' page. Replace with real logic if you track viewer metrics, etc.
+    """
+    dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
+    try:
+        user_subscription = request.user.subscription
+    except UserSubscription.DoesNotExist:
+        user_subscription = None
+
+    # Example metrics
+    context = {
+        'dashboard_settings': dashboard_settings,
+        'user_subscription': user_subscription,
+        'some_analytics_data': {...}  # Replace with real data
+    }
+    return render(request, "dashboard/analytics.html", context)

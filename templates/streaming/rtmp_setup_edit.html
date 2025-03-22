@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Edit RTMP Configuration - {{ config.stream_title }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="{{ form.stream_title.id_for_label }}" class="form-label">Stream Title</label>
+      {{ form.stream_title }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+      {{ form.description }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.rtmp_url.id_for_label }}" class="form-label">RTMP URL</label>
+      {{ form.rtmp_url }}
+    </div>
+    <div class="mb-3">
+      <label for="{{ form.stream_key.id_for_label }}" class="form-label">Stream Key</label>
+      {{ form.stream_key }}
+    </div>
+    <button type="submit" class="btn btn-primary">Update Configuration</button>
+    <a href="{% url 'streaming:rtmp_setup' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

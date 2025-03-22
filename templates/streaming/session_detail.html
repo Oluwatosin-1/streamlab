@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Streaming Session Details</h2>
+  <div class="card">
+    <div class="card-header">
+      <h3>{{ session.configuration.stream_title }}</h3>
+    </div>
+    <div class="card-body">
+      <p><strong>Status:</strong> {{ session.status }}</p>
+      <p><strong>Session Start:</strong> {{ session.session_start|date:"SHORT_DATETIME_FORMAT" }}</p>
+      <p><strong>Session End:</strong> 
+        {% if session.session_end %}
+          {{ session.session_end|date:"SHORT_DATETIME_FORMAT" }}
+        {% else %}
+          In Progress
+        {% endif %}
+      </p>
+      <p><strong>Viewers Count:</strong> {{ session.viewers_count }}</p>
+      {% if session.error_message %}
+      <p><strong>Error Message:</strong> {{ session.error_message }}</p>
+      {% endif %}
+    </div>
+    <div class="card-footer">
+        <a href="{% url 'streaming:studio' %}" class="btn btn-secondary">Enter Studio</a>
+      <a href="{% url 'streaming:config_detail' session.configuration.id %}" class="btn btn-secondary">Back to Configuration</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
