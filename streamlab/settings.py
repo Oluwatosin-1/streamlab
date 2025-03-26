@@ -153,13 +153,16 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # steamlab/settings.py (or your environment variables)
-YOUTUBE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
-YOUTUBE_CLIENT_SECRET = "YOUR_GOOGLE_CLIENT_SECRET"
-
+GOOGLE_OAUTH_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, "client_secret.json")
+ 
 FACEBOOK_APP_ID = "213820099154520"
 FACEBOOK_APP_SECRET = "213820099154520"
 
 # e.g. "http://localhost:8000/streaming/youtube/callback/"
-YOUTUBE_REDIRECT_URI = os.environ.get("YOUTUBE_REDIRECT_URI")
+# settings.py
+YOUTUBE_CLIENT_ID = "your-client-id"
+YOUTUBE_CLIENT_SECRET = "your-client-secret"
+YOUTUBE_REDIRECT_URI = "http://localhost:8000/streaming/youtube/callback/"  # Updated redirect URI
+
 # e.g. "http://localhost:8000/streaming/facebook/callback/"
 FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI")

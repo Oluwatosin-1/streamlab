@@ -5,7 +5,7 @@ from streaming.views.views import (
     connect_facebook_oauth,
     connect_youtube_oauth,
     facebook_callback,
-    studio,
+    studio_enter,
     youtube_callback,
     connect_social,  # new endpoint to support social connections (e.g., Instagram, Telegram)
     go_live,
@@ -41,7 +41,7 @@ app_name = "streaming"
 urlpatterns = [
     # OAuth endpoints
     path("oauth/youtube/connect/", connect_youtube_oauth, name="connect_youtube_oauth"),
-    path("oauth/youtube/callback/", youtube_callback, name="youtube_callback"),
+    path("youtube/callback/", youtube_callback, name="youtube_callback"),
     path("oauth/facebook/connect/", connect_facebook_oauth, name="connect_facebook_oauth"),
     path("oauth/facebook/callback/", facebook_callback, name="facebook_callback"),
     
@@ -83,5 +83,5 @@ urlpatterns = [
     path("session/<int:session_id>/stats/", stream_stats, name="stream_stats"),
     
     # **New Studio Endpoint:**
-    path("studio/", studio, name="studio"),
+    path("studio/", studio_enter, name="studio"),
 ]

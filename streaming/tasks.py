@@ -2,7 +2,7 @@
 from celery import shared_task
 from django.utils import timezone
 from .models import StreamingSession, ScheduledVideo 
-import subprocess 
+import subprocess  
 
 @shared_task
 def start_stream_task(session_id):
@@ -64,3 +64,27 @@ def go_live_task(session_id):
     session.status = "live"
     session.save()
     return "Streaming started."
+
+@shared_task
+def relay_stream_task(session_id):
+    try:
+        session = StreamingSession.objects.get(id=session_id)
+    except StreamingSession.DoesNotExist:
+        return "Session not found"
+
+    rtmp_source = session.configuration.get_full_rtmp_url()
+    # Define the external RTMP URL according to the platform's requirements
+    external_rtmp_url = "rtmp://external.platform/live/streamkey"
+
+    command = [
+        "ffmpeg",
+        "-i", rtmp_source,
+        "-c", "copy",
+        "-f", "flv",
+        external_rtmp_url
+    ]
+
+    subprocess.run(command)
+    session.status = "live"
+    session.save()
+    return "Relay started"
