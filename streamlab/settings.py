@@ -90,6 +90,9 @@ DATABASES = {
 
 # Authentication Settings
 AUTH_USER_MODEL = "users.CustomUser"
+# settings.py
+LOGIN_URL = "/users/login/"
+LOGIN_REDIRECT_URL = "/"  # or any URL you want users to be redirected after login
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -168,6 +171,15 @@ CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+# or
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        # ...
+    }
+}
 
 LOGGING = {
     'version': 1,
