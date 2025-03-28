@@ -6,3 +6,9 @@ __pycache__
 
 # If you plan on writing logs to the container or locally
 logs/
+venv/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+*.sqlite3
