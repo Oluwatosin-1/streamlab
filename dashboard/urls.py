@@ -7,7 +7,7 @@ from .views import dashboard, dashboard_drafts, dashboard_scheduled, dashboard_s
 app_name = "dashboard"
 
 urlpatterns = [
-    path("", dashboard, name="index"),
+    path("/", dashboard, name="index"),
     path("drafts/", dashboard_drafts, name="drafts"),
     path("scheduled/", dashboard_scheduled, name="scheduled"),
     path("past-streams/", past_streams, name="past_streams"),
