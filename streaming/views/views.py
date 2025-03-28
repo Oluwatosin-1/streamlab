@@ -178,24 +178,24 @@ def create_streaming_config(request):
     else:
         form = StreamingConfigurationForm()
     return render(request, "streaming/create_config.html", {"form": form})
-
+ 
 @login_required
 def studio_enter(request):
-    # Retrieve social accounts and active configuration.
+    # Retrieve social accounts and active config.
     social_accounts = StreamingPlatformAccount.objects.filter(user=request.user)
     config = StreamingConfiguration.objects.filter(user=request.user, is_active=True).first()
     if not config:
         messages.error(request, "No active streaming configuration found. Please create one.")
         return redirect("streaming:config_create")
-    
-    # Create a new streaming session, if needed.
+
+    # Create the streaming session
     session = StreamingSession.objects.create(configuration=config, status="live")
-    
-    # Trigger background tasks to update SRS relay to social accounts.
-    from streaming.tasks import relay_stream_task  # updated import
+
+    # Kick off Celery task to start or relay the stream
+    from streaming.tasks import relay_stream_task
     relay_stream_task.delay(session.id)
-    
-    session_uuid = uuid.uuid4()  # Generate once for the session
+
+    session_uuid = session.session_uuid  # Already assigned in the model
     context = {
         "social_accounts": social_accounts,
         "config": config,
@@ -207,22 +207,17 @@ def studio_enter(request):
 
 @login_required
 def go_live(request, config_id, session_id=None):
-    # Retrieve the streaming configuration using the config_id passed in the URL.
     config = get_object_or_404(StreamingConfiguration, pk=config_id, user=request.user, is_active=True)
-    
-    # If session_id is provided, get the existing session; otherwise, create a new one.
     if session_id:
         session = get_object_or_404(StreamingSession, id=session_id, configuration__user=request.user)
     else:
         session = StreamingSession.objects.create(configuration=config, status="live")
-    
-    # Trigger your SRS API to start the stream.
-    stream_response = start_streaming_via_srs(app="live", stream_name=config.stream_key)
-    if stream_response:
-        messages.success(request, "You are now live!")
-    else:
-        messages.error(request, "Failed to start stream via SRS.")
-    
+
+    # Instead of direct call, let Celery do it:
+    from streaming.tasks import relay_stream_task
+    result = relay_stream_task.delay(session.id)
+
+    messages.info(request, f"Initiating live stream for session: {session.session_uuid}")
     return redirect(reverse("streaming:session_detail", kwargs={"session_id": session.id}))
 
 @login_required
@@ -231,10 +226,11 @@ def stop_live(request, session_id):
     if session.status != "live":
         messages.error(request, "Session is not live.")
         return redirect(reverse("streaming:session_detail", kwargs={"session_id": session.id}))
-    session.status = "ended"
-    session.session_end = datetime.now(timezone.utc)
-    session.save()
-    messages.info(request, "Live session has been stopped.")
+
+    from streaming.tasks import stop_relay_task
+    result = stop_relay_task.delay(session.id)
+
+    messages.info(request, f"Stopping live stream for session: {session.session_uuid}")
     return redirect(reverse("streaming:session_detail", kwargs={"session_id": session.id}))
 
 @login_required
