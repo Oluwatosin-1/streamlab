@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    container_name: streamlab_web
+    command: gunicorn streamlab.wsgi:application --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    container_name: streamlab_db
+    environment:
+      POSTGRES_DB: streamlab
+      POSTGRES_USER: streamlab_user
+      POSTGRES_PASSWORD: streamlab_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

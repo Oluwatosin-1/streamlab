@@ -42,8 +42,7 @@ INSTALLED_APPS = [
     "corsheaders",  # Cross-Origin Resource Sharing (for frontend)
     "rest_framework_simplejwt",  # JWT Authentication
     "users",  # User Authentication & Subscription
-    "streaming",  # RTMP Streaming & Social Connection
-    "payments",  # Stripe Payments
+    "streaming",  # RTMP Streaming & Social Connection 
     "dashboard",  # User Dashboard Integration
 ]
 
@@ -154,15 +153,27 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # steamlab/settings.py (or your environment variables)
 GOOGLE_OAUTH_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, "client_secret.json")
- 
-FACEBOOK_APP_ID = "213820099154520"
-FACEBOOK_APP_SECRET = "213820099154520"
+
+import os
+
+FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "3999257497026619")
+FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "a3711cf22c091b41af61cd4bbc1f86e4") 
+FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI", "https://localhost:8000/streaming/facebook/callback/")
 
 # e.g. "http://localhost:8000/streaming/youtube/callback/"
 # settings.py
-YOUTUBE_CLIENT_ID = "your-client-id"
-YOUTUBE_CLIENT_SECRET = "your-client-secret"
+YOUTUBE_CLIENT_ID = "1003940566003-nlhu7pb6t0rr889ic4mj6c42qkonhq3n.apps.googleusercontent.com"
+YOUTUBE_CLIENT_SECRET = "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"
 YOUTUBE_REDIRECT_URI = "http://localhost:8000/streaming/youtube/callback/"  # Updated redirect URI
 
 # e.g. "http://localhost:8000/streaming/facebook/callback/"
 FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI")
+
+SRS_SERVER_HOST = 'localhost'  # or your SRS server domain/IP if different
+SRS_API_PORT = 1985
+# settings.py
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

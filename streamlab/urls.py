@@ -7,6 +7,5 @@ urlpatterns = [
     path("users/", include("users.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("streaming/", include("streaming.urls", namespace="streaming")),
-    path("logout/", LogoutView.as_view(next_page="login"), name="logout"),
-    path("payments/", include("payments.urls", namespace="payments")), 
+    path("logout/", LogoutView.as_view(next_page="login"), name="logout"), 
 ]

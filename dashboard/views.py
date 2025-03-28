@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from dashboard.models import DashboardSettings
 from streaming.models import StreamingConfiguration, StreamingSession
-from payments.models import UserSubscription
+# from payments.models import UserSubscription
 
 @login_required
 def dashboard(request):
@@ -10,11 +10,7 @@ def dashboard(request):
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
     streaming_configs = StreamingConfiguration.objects.filter(user=request.user)
     streaming_sessions = StreamingSession.objects.filter(configuration__user=request.user).order_by('-session_start')
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+  
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -26,8 +22,7 @@ def dashboard(request):
         'dashboard_settings': dashboard_settings,
         'streaming_configs': streaming_configs,
         'streaming_sessions': streaming_sessions,
-        'metrics': metrics,
-        'user_subscription': user_subscription,
+        'metrics': metrics, 
         'active_tab': 'all',
     }
     return render(request, "dashboard/index.html", context)
@@ -37,11 +32,7 @@ def dashboard_drafts(request):
     # "Drafts" tab: for example, non-active streaming configurations can be considered drafts.
     drafts = StreamingConfiguration.objects.filter(user=request.user, is_active=False)
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+ 
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -52,8 +43,7 @@ def dashboard_drafts(request):
     context = {
         'drafts': drafts,
         'dashboard_settings': dashboard_settings,
-        'metrics': metrics,
-        'user_subscription': user_subscription,
+        'metrics': metrics, 
         'active_tab': 'drafts',
     }
     return render(request, "dashboard/index.html", context)
@@ -64,11 +54,7 @@ def dashboard_scheduled(request):
     # For now, we'll use an empty list as a placeholder.
     scheduled = []
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+ 
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -79,8 +65,7 @@ def dashboard_scheduled(request):
     context = {
         'scheduled': scheduled,
         'dashboard_settings': dashboard_settings,
-        'metrics': metrics,
-        'user_subscription': user_subscription,
+        'metrics': metrics, 
         'active_tab': 'scheduled',
     }
     return render(request, "dashboard/index.html", context)
@@ -94,11 +79,7 @@ def past_streams(request):
     ).order_by('-session_end')
 
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+ 
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -108,8 +89,7 @@ def past_streams(request):
 
     context = {
         'ended_streams': ended_streams,
-        'dashboard_settings': dashboard_settings,
-        'user_subscription': user_subscription,
+        'dashboard_settings': dashboard_settings, 
         'metrics': metrics,
         'active_tab': 'past_streams',
     }
@@ -148,14 +128,9 @@ def video_storage(request):
     You might list user-uploaded or recorded videos stored on your platform.
     """
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+ 
     context = {
-        'dashboard_settings': dashboard_settings,
-        'user_subscription': user_subscription,
+        'dashboard_settings': dashboard_settings, 
     }
     return render(request, "dashboard/video_storage.html", context)
 
@@ -166,15 +141,10 @@ def analytics(request):
     Example 'Analytics' page. Replace with real logic if you track viewer metrics, etc.
     """
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
-
+ 
     # Example metrics
     context = {
-        'dashboard_settings': dashboard_settings,
-        'user_subscription': user_subscription,
+        'dashboard_settings': dashboard_settings, 
         'some_analytics_data': {...}  # Replace with real data
     }
     return render(request, "dashboard/analytics.html", context)

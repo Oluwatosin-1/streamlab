@@ -2,33 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="container-fluid dashboard my-4">
-
-  <!-- Optional Upgrade Banner -->
-  <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
-    <div>
-      <strong>Get more power from Streamlab!</strong> Upgrade to unlock premium features.
-    </div>
-    <a href="{% url 'payments:subscription' %}" class="btn btn-primary">Upgrade</a>
-  </div>
-
-  <!-- Subscription Details -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h4 class="card-title">Subscription Details</h4>
-    </div>
-    <div class="card-body">
-      {% if user_subscription %}
-        <p>Current Plan: <strong>{{ user_subscription.plan.get_name_display }}</strong></p>
-        <p>Status: <strong>{% if user_subscription.active %}Active{% else %}Inactive{% endif %}</strong></p>
-        <a href="{% url 'payments:subscription' %}" class="btn btn-outline-primary">Manage Subscription</a>
-      {% else %}
-        <p>You do not have a subscription plan. 
-          <a href="{% url 'payments:subscription' %}">Subscribe now</a>
-        </p>
-      {% endif %}
-    </div>
-  </div>
-
+ 
   <!-- Navigation Bar -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <ul class="nav nav-pills">
@@ -71,8 +45,19 @@
           <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-secondary btn-sm me-2">Draft</a>
           <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-success btn-sm">Studio</a>
         </div>
+        <!-- Dashboard Template Snippet -->
+{% if streaming_configs and streaming_configs|length > 0 %}
+<a href="{% url 'streaming:studio' %}" class="btn btn-success">
+  <i class="fa fa-plus me-1"></i> Enter Studio & Go Live
+</a>
+{% else %}
+<a href="{% url 'streaming:config_create' %}" class="btn btn-warning">
+  <i class="fa fa-plus me-1"></i> Create Stream Configuration
+</a>
+{% endif %}
+
         <div class="card-header mt-5">
-          <h4 class="card-title mb-0">Go live from your browser with Streamlab Studio</h4>
+          <h4 class="card-title mb-0">Go live from your browser with Obairawo e Studio</h4>
         </div>
         <div class="card-body">
           <p class="mb-0">

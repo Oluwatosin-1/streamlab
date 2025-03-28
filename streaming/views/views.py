@@ -11,9 +11,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
-from dashboard.models import DashboardSettings
-from payments.models import UserSubscription
-from streaming.models import ChatMessage, StreamingConfiguration, StreamingSession
+from streaming.srs_utils import start_streaming_via_srs
+from dashboard.models import DashboardSettings 
+from streaming.models import ChatMessage, StreamingConfiguration, StreamingPlatformAccount, StreamingSession
 from streaming.forms import (
     RecordingForm,
     SocialAccountForm,
@@ -115,39 +115,32 @@ def facebook_callback(request):
 ### MANUAL / GENERIC SOCIAL CONNECT ENDPOINT ###
 @login_required
 def connect_social(request, platform):
-    """
-    A generic endpoint to connect or update a social account for platforms that
-    do not have a full OAuth flow (e.g., Instagram, TikTok, Twitch, Telegram).
-    Users can manually provide the stream key, RTMP URL, and other settings.
-    After successful submission, the user is redirected to the channel management page.
-    """
     valid_platforms = ["youtube", "facebook", "twitch", "instagram", "tiktok", "telegram"]
     if platform not in valid_platforms:
         messages.error(request, f"Invalid platform: {platform}.")
         return redirect("dashboard:index")
-    # For YouTube and Facebook, if the OAuth token is missing, redirect to their OAuth flows.
+    
+    # For OAuth platforms, redirect if token is missing.
     if request.method == "GET":
-        if platform == "youtube":
-            sa, _ = SocialAccount.objects.get_or_create(user=request.user, platform="youtube")
-            if not sa.access_token:
-                return redirect("streaming:connect_youtube_oauth")
-        elif platform == "facebook":
-            sa, _ = SocialAccount.objects.get_or_create(user=request.user, platform="facebook")
-            if not sa.access_token:
-                return redirect("streaming:connect_facebook_oauth")
-    # For manual entry, display the form.
+        if platform in ["youtube", "facebook"]:
+            account, _ = StreamingPlatformAccount.objects.get_or_create(user=request.user, platform=platform)
+            if not account.access_token:
+                if platform == "youtube":
+                    return redirect("streaming:connect_youtube_oauth")
+                elif platform == "facebook":
+                    return redirect("streaming:connect_facebook_oauth")
+    
     if request.method == "POST":
         form = SocialAccountForm(request.POST)
         if form.is_valid():
-            social_account, _ = SocialAccount.objects.get_or_create(user=request.user, platform=platform)
-            social_account.display_name = form.cleaned_data.get("display_name")
-            social_account.access_token = form.cleaned_data.get("access_token")
-            social_account.refresh_token = form.cleaned_data.get("refresh_token")
-            social_account.rtmp_url = form.cleaned_data.get("rtmp_url")
-            social_account.stream_key = form.cleaned_data.get("stream_key")
-            social_account.save()
+            account, _ = StreamingPlatformAccount.objects.get_or_create(user=request.user, platform=platform)
+            account.display_name = form.cleaned_data.get("display_name")
+            account.access_token = form.cleaned_data.get("access_token")
+            account.refresh_token = form.cleaned_data.get("refresh_token")
+            account.rtmp_url = form.cleaned_data.get("rtmp_url")
+            account.stream_key = form.cleaned_data.get("stream_key")
+            account.save()
             messages.success(request, f"{platform.capitalize()} account connected successfully via manual entry.")
-            # Redirect to the manage channels page showing the list of connected channels.
             return redirect("streaming:manage_channels")
         else:
             messages.error(request, "Error connecting social account. Please correct the errors below.")
@@ -188,37 +181,48 @@ def create_streaming_config(request):
 
 @login_required
 def studio_enter(request):
-    """
-    The main studio page where users preview and control their stream.
-    Generates a unique session UUID for this streaming session.
-    """
-    social_accounts = SocialAccount.objects.filter(user=request.user)
+    # Retrieve social accounts and active configuration.
+    social_accounts = StreamingPlatformAccount.objects.filter(user=request.user)
     config = StreamingConfiguration.objects.filter(user=request.user, is_active=True).first()
-    record_mode = ('record' in request.GET)
-    session_uuid = uuid.uuid4()
+    if not config:
+        messages.error(request, "No active streaming configuration found. Please create one.")
+        return redirect("streaming:config_create")
+    
+    # Create a new streaming session, if needed.
+    session = StreamingSession.objects.create(configuration=config, status="live")
+    
+    # Trigger background tasks to update SRS relay to social accounts.
+    from streaming.tasks import relay_stream_task  # updated import
+    relay_stream_task.delay(session.id)
+    
+    session_uuid = uuid.uuid4()  # Generate once for the session
     context = {
         "social_accounts": social_accounts,
         "config": config,
-        "record_mode": record_mode,
+        "record_mode": 'record' in request.GET,
         "session_uuid": session_uuid,
+        "session": session,
     }
     return render(request, "streaming/studio_enter.html", context)
 
 @login_required
-def go_live(request, session_id=None):
-    """
-    Trigger a live session based on the active configuration.
-    If session_id is provided, update that session; otherwise, create a new one.
-    """
-    config = StreamingConfiguration.objects.filter(user=request.user, is_active=True).first()
-    if not config:
-        messages.error(request, "No active streaming configuration found.")
-        return redirect("streaming:create_config")
+def go_live(request, config_id, session_id=None):
+    # Retrieve the streaming configuration using the config_id passed in the URL.
+    config = get_object_or_404(StreamingConfiguration, pk=config_id, user=request.user, is_active=True)
+    
+    # If session_id is provided, get the existing session; otherwise, create a new one.
     if session_id:
         session = get_object_or_404(StreamingSession, id=session_id, configuration__user=request.user)
     else:
         session = StreamingSession.objects.create(configuration=config, status="live")
-    messages.success(request, "You are now live!")
+    
+    # Trigger your SRS API to start the stream.
+    stream_response = start_streaming_via_srs(app="live", stream_name=config.stream_key)
+    if stream_response:
+        messages.success(request, "You are now live!")
+    else:
+        messages.error(request, "Failed to start stream via SRS.")
+    
     return redirect(reverse("streaming:session_detail", kwargs={"session_id": session.id}))
 
 @login_required
@@ -299,26 +303,17 @@ def upload_recorded(request):
 @login_required
 def video_storage(request):
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
     context = {
-        'dashboard_settings': dashboard_settings,
-        'user_subscription': user_subscription,
+        'dashboard_settings': dashboard_settings, 
     }
     return render(request, "dashboard/video_storage.html", context)
 
 @login_required
 def analytics(request):
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
-    try:
-        user_subscription = request.user.subscription
-    except UserSubscription.DoesNotExist:
-        user_subscription = None
+ 
     context = {
-        'dashboard_settings': dashboard_settings,
-        'user_subscription': user_subscription,
+        'dashboard_settings': dashboard_settings, 
         'some_analytics_data': {}  # Replace with actual analytics data
     }
     return render(request, "dashboard/analytics.html", context)

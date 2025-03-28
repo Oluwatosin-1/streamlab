@@ -2,87 +2,450 @@
 {% load static %}
 {% block content %}
 <div class="container-fluid my-3">
-  <h2 class="mb-3">Streamlab Studio</h2>
-  {% if configuration %}
-    <p><strong>Configuration:</strong> {{ configuration.stream_title }}</p>
+  <h2 class="mb-3">Obairawo e Studio</h2>
+  
+  {# Display a message about the mode #}
+  {% if record_mode %}
+    <p class="text-muted">
+      Local Recording Mode: Preview and record your session without live streaming.
+    </p>
   {% else %}
-    <p class="alert alert-warning">No configuration found. <a href="{% url 'streaming:config_create' %}">Create one</a> first.</p>
+    <p class="text-muted">
+      Live Streaming Mode: Adjust your preview feed, select cameras or share your screen, 
+      then push your preview live when ready. Once pushed, the live feed won't be affected 
+      by further preview changes unless you push again.
+    </p>
   {% endif %}
   
-  <!-- Preview Section -->
+  <p><small>Session ID: {{ session_uuid }}</small></p>
+
   <div class="row">
+    <!-- Left Column: Preview Section -->
     <div class="col-lg-6">
       <div class="card mb-3">
-        <div class="card-header">
-          <h5>Preview Feed</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Preview Feed</h5>
+          <span class="badge bg-info" id="preview-status">Initializing...</span>
         </div>
-        <div class="card-body p-0 position-relative">
+        <div class="card-body bg-dark p-0 position-relative">
           <video id="previewVideo" autoplay playsinline muted style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></video>
           <div id="noPreviewText" class="position-absolute top-50 start-50 translate-middle text-white" style="display: none;">
             <h6>No camera available for preview.</h6>
           </div>
         </div>
         <div class="card-footer">
-          <button id="startPreviewBtn" class="btn btn-sm btn-outline-primary">Start Preview</button>
-          <button id="stopPreviewBtn" class="btn btn-sm btn-outline-secondary">Stop Preview</button>
-          <button id="switchScreenPreviewBtn" class="btn btn-sm btn-outline-info">Share Screen</button>
-          <!-- Button to push preview to live -->
-          <button id="pushToLiveBtn" class="btn btn-sm btn-outline-success">Push to Live</button>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <label for="previewCameraSelect" class="me-2 mb-0">Preview Camera:</label>
+            <select id="previewCameraSelect" class="form-select form-select-sm" style="width: auto;"></select>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary" id="startPreviewBtn">Start Camera</button>
+            <button class="btn btn-sm btn-outline-secondary" id="stopPreviewBtn">Stop Camera</button>
+            <button class="btn btn-sm btn-outline-info" id="switchScreenBtn">Share Screen (Preview)</button>
+            <button class="btn btn-sm btn-outline-success" id="pushToLiveBtn">Push to Live</button>
+          </div>
         </div>
       </div>
     </div>
     
-    <!-- Live Section -->
+    <!-- Right Column: Live Feed, Participants & Chat -->
     <div class="col-lg-6">
       <div class="card mb-3">
-        <div class="card-header">
-          <h5>Live Feed</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Live Feed</h5>
+          <span class="badge bg-success" id="live-status">Initializing...</span>
         </div>
-        <div class="card-body p-0 position-relative">
+        <div class="card-body bg-dark p-0 position-relative">
           <video id="liveVideo" autoplay playsinline muted style="width: 100%; aspect-ratio: 16/9; object-fit: cover;"></video>
           <div id="noLiveText" class="position-absolute top-50 start-50 translate-middle text-white" style="display: none;">
             <h6>No live feed available.</h6>
           </div>
         </div>
         <div class="card-footer">
-          <button id="startLiveBtn" class="btn btn-sm btn-outline-primary">Start Live Cam</button>
-          <button id="stopLiveBtn" class="btn btn-sm btn-outline-secondary">Stop Live Cam</button>
-          <button id="switchScreenLiveBtn" class="btn btn-sm btn-outline-info">Share Screen (Live)</button>
-        </div>
-      </div>
-      
-      <!-- Chat Section -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h6>Live Chat</h6>
-        </div>
-        <div class="card-body" id="chatContainer" style="max-height: 200px; overflow-y: auto;">
-          <!-- Chat messages loaded here via AJAX or websockets -->
-        </div>
-        <div class="card-footer">
-          <div class="input-group">
-            <input type="text" id="chatMessage" class="form-control" placeholder="Type a message...">
-            <button id="sendChatBtn" class="btn btn-primary">Send</button>
+          <div class="d-flex align-items-center gap-2">
+            <label for="liveCameraSelect" class="me-2 mb-0">Live Camera:</label>
+            <select id="liveCameraSelect" class="form-select form-select-sm" style="width: auto;"></select>
+            <button class="btn btn-sm btn-outline-info" id="switchScreenLiveBtn">Share Screen (Live)</button>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-sm btn-outline-primary" id="startLiveBtn">Start Live Cam</button>
+            <button class="btn btn-sm btn-outline-secondary" id="stopLiveBtn">Stop Live Cam</button>
           </div>
         </div>
       </div>
       
+      <!-- Participants Card -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Participants / Scenes</h6>
+        </div>
+        <div class="card-body" style="max-height: 200px; overflow-y: auto;" id="participantsList">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Host (You)
+              <span class="badge bg-success">Camera On</span>
+            </li>
+            {# Additional participants loaded dynamically via JS #}
+          </ul>
+        </div>
+      </div>
+      
+      {% if not record_mode %}
+      <!-- Live Chat Card -->
+      <div class="card mb-3" style="max-height: 300px;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Live Chat</h6>
+          <button class="btn btn-sm btn-outline-primary" id="refreshChatBtn">Refresh</button>
+        </div>
+        <div class="card-body" id="chatContainer" style="overflow-y: auto;">
+          <p class="text-muted">Chat messages will appear here.</p>
+        </div>
+        <div class="card-footer">
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Type a message..." id="chatMessage">
+            <button class="btn btn-primary" id="sendChatBtn">Send</button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
   
-  <!-- Studio Controls -->
-  <div class="d-flex justify-content-end gap-2 mt-3">
-    {% if configuration %}
-      <form method="post" action="{% url 'streaming:go_live' config_id=configuration.id %}">
+  <!-- Footer Toolbar: Go Live / Stop Live & Recording Controls -->
+  <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+    {% if not record_mode and social_accounts|length > 0 and config %}
+      {# If using a form to trigger go_live, ensure the URL matches your view.
+         You might need to pass the config ID in a hidden field or as part of the URL.
+         For simplicity, here we assume the go_live view uses the active configuration. #}
+      <form method="post" action="{% url 'streaming:go_live' %}">
         {% csrf_token %}
-        <button type="submit" class="btn btn-success">Go Live</button>
+        <button type="submit" class="btn btn-success" id="goLiveBtn">Go Live</button>
+      </form>
+      <form method="post" action="{% url 'streaming:stop_live' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" id="stopLiveFeedBtn">Stop Live</button>
       </form>
     {% endif %}
-    <button id="startRecordBtn" class="btn btn-outline-info">Start Recording</button>
-    <button id="stopRecordBtn" class="btn btn-outline-warning" disabled>Stop Recording</button>
+    <button class="btn btn-outline-info" id="startRecordBtn">Start Recording</button>
+    <button class="btn btn-outline-warning" id="stopRecordBtn" disabled>Stop Recording</button>
   </div>
 </div>
 
-<!-- Include your JavaScript for handling camera streams, chat, overlays, etc. -->
-<script src="{% static 'js/studio.js' %}"></script>
+<!-- JavaScript for handling camera feeds, preview/live switching, recording, chat, etc. -->
+<script>
+  // Video element references.
+  const liveVideo = document.getElementById("liveVideo");
+  const previewVideo = document.getElementById("previewVideo");
+  const noLiveText = document.getElementById("noLiveText");
+  const noPreviewText = document.getElementById("noPreviewText");
+  const streamStatus = document.getElementById("live-status");
+
+  // Control buttons.
+  const startLiveBtn         = document.getElementById("startLiveBtn");
+  const stopLiveBtn          = document.getElementById("stopLiveBtn");
+  const switchScreenBtn      = document.getElementById("switchScreenBtn");       // Share screen for preview.
+  const switchScreenLiveBtn  = document.getElementById("switchScreenLiveBtn");  // Share screen for live.
+  const startRecordBtn       = document.getElementById("startRecordBtn");
+  const stopRecordBtn        = document.getElementById("stopRecordBtn");
+  const pushToLiveBtn        = document.getElementById("pushToLiveBtn");
+  const startPreviewBtn      = document.getElementById("startPreviewBtn");
+  const stopPreviewBtn       = document.getElementById("stopPreviewBtn");
+
+  // Camera select dropdowns.
+  const liveCameraSelect    = document.getElementById("liveCameraSelect");
+  const previewCameraSelect = document.getElementById("previewCameraSelect");
+
+  // Chat elements.
+  const refreshChatBtn = document.getElementById("refreshChatBtn");
+  const chatContainer  = document.getElementById("chatContainer");
+  const sendChatBtn    = document.getElementById("sendChatBtn");
+  const chatMessage    = document.getElementById("chatMessage");
+
+  // Session & mode variables passed from Django.
+  const sessionUuid = "{{ session_uuid }}";
+  const recordMode  = {{ record_mode|yesno:"true,false" }};
+
+  // Streams and recording variables.
+  let liveStream          = null;  // Live feed (camera or screen share).
+  let previewStream       = null;  // Preview feed (camera or screen share).
+  let mediaRecorder       = null;
+  let recordedChunks      = [];
+  let videoDevices        = [];
+  let currentLiveDeviceId = null;
+  let currentPreviewDeviceId = null;
+
+  // Enumerate video devices and populate camera selects.
+  async function getVideoDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      videoDevices = devices.filter(d => d.kind === "videoinput");
+      populateCameraSelect(liveCameraSelect, (device, idx) => {
+        if (!currentLiveDeviceId) currentLiveDeviceId = device.deviceId;
+      });
+      populateCameraSelect(previewCameraSelect, (device, idx) => {
+        if (videoDevices.length > 1 && idx === 1) {
+          currentPreviewDeviceId = device.deviceId;
+        } else if (videoDevices.length === 1 && idx === 0) {
+          currentPreviewDeviceId = device.deviceId;
+        }
+      });
+    } catch (err) {
+      console.error("Error enumerating devices:", err);
+    }
+  }
+
+  function populateCameraSelect(selectEl, callback) {
+    selectEl.innerHTML = "";
+    videoDevices.forEach((device, index) => {
+      const opt = document.createElement("option");
+      opt.value = device.deviceId;
+      opt.text  = device.label || `Camera ${index + 1}`;
+      selectEl.appendChild(opt);
+      callback(device, index);
+    });
+  }
+
+  // Start live camera feed.
+  async function startLiveCamera() {
+    try {
+      const constraints = {
+        video: { deviceId: currentLiveDeviceId ? { exact: currentLiveDeviceId } : undefined },
+        audio: true
+      };
+      if (liveStream) {
+        liveStream.getTracks().forEach(t => t.stop());
+      }
+      liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+      liveVideo.srcObject = liveStream;
+      streamStatus.textContent = "Live Camera On";
+      noLiveText.style.display = "none";
+    } catch (err) {
+      console.error("Error starting live camera:", err);
+      streamStatus.textContent = "Live Camera Off";
+      noLiveText.style.display = "block";
+    }
+  }
+
+  function stopLiveCamera() {
+    if (liveStream) {
+      liveStream.getTracks().forEach(track => track.stop());
+      liveStream = null;
+      streamStatus.textContent = "Live Camera Off";
+      noLiveText.style.display = "block";
+    }
+  }
+
+  // Start preview camera feed.
+  async function startPreviewCamera() {
+    try {
+      if (!currentPreviewDeviceId) {
+        previewVideo.style.display = "none";
+        noPreviewText.style.display = "block";
+        return;
+      }
+      const constraints = {
+        video: { deviceId: { exact: currentPreviewDeviceId } },
+        audio: false
+      };
+      if (previewStream) {
+        previewStream.getTracks().forEach(t => t.stop());
+      }
+      previewStream = await navigator.mediaDevices.getUserMedia(constraints);
+      previewVideo.srcObject = previewStream;
+      previewVideo.style.display = "block";
+      noPreviewText.style.display = "none";
+    } catch (err) {
+      console.error("Error starting preview camera:", err);
+      previewVideo.style.display = "none";
+      noPreviewText.style.display = "block";
+    }
+  }
+
+  function stopPreviewCamera() {
+    if (previewStream) {
+      previewStream.getTracks().forEach(track => track.stop());
+      previewStream = null;
+    }
+    previewVideo.style.display = "none";
+    noPreviewText.style.display = "block";
+  }
+
+  // Switch the live feed to screen share.
+  async function switchScreenLive() {
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      if (liveStream) liveStream.getTracks().forEach(t => t.stop());
+      liveStream = displayStream;
+      liveVideo.srcObject = liveStream;
+      streamStatus.textContent = "Screen Shared (Live)";
+      noLiveText.style.display = "none";
+    } catch (err) {
+      console.error("Error switching to screen share for live feed:", err);
+    }
+  }
+
+  // Switch the preview feed to screen share.
+  async function switchScreenPreview() {
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      if (previewStream) previewStream.getTracks().forEach(t => t.stop());
+      previewStream = displayStream;
+      previewVideo.srcObject = displayStream;
+      previewVideo.style.display = "block";
+      noPreviewText.style.display = "none";
+    } catch (err) {
+      console.error("Error switching to screen share for preview:", err);
+    }
+  }
+
+  // Push the preview feed into the live feed by cloning the preview tracks.
+  function pushPreviewToLive() {
+    if (!previewStream) {
+      alert("No preview stream available to push.");
+      return;
+    }
+    if (liveStream) {
+      liveStream.getTracks().forEach(t => t.stop());
+    }
+    const newLiveStream = new MediaStream();
+    previewStream.getTracks().forEach(track => {
+      newLiveStream.addTrack(track.clone());
+    });
+    liveStream = newLiveStream;
+    liveVideo.srcObject = liveStream;
+    streamStatus.textContent = "Preview Pushed Live (Cloned)";
+    noLiveText.style.display = "none";
+  }
+
+  // Start recording the live feed.
+  function startRecording() {
+    if (!liveStream) {
+      alert("Please start a live feed before recording.");
+      return;
+    }
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(liveStream, { mimeType: 'video/webm; codecs=vp9' });
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+    mediaRecorder.onstop = uploadRecording;
+    mediaRecorder.start();
+    startRecordBtn.disabled = true;
+    stopRecordBtn.disabled  = false;
+    alert("Recording started!");
+  }
+
+  async function uploadRecording() {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    recordedChunks = [];
+    const formData = new FormData();
+    formData.append("video_file", blob, `recorded_${sessionUuid}.webm`);
+    try {
+      const resp = await fetch("{% url 'streaming:upload_recorded' %}", {
+        method: "POST",
+        body: formData,
+      });
+      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+      alert("Recording uploaded successfully!");
+    } catch (err) {
+      console.error("Error uploading recording:", err);
+      alert("Failed to upload recording.");
+    }
+    startRecordBtn.disabled = false;
+    stopRecordBtn.disabled  = true;
+  }
+
+  function stopRecording() {
+    if (!mediaRecorder) {
+      alert("No recording is in progress.");
+      return;
+    }
+    mediaRecorder.stop();
+  }
+
+  // Chat: Fetch and send messages.
+  async function fetchChatMessages() {
+    // You may need to construct the URL using your session ID; adjust accordingly.
+    try {
+      const r = await fetch(`/streaming/session/{{ config.id|default:"0" }}/chat/fetch/`);
+      if (!r.ok) throw new Error("Failed to fetch chat messages");
+      const data = await r.json();
+      displayChatMessages(data.messages || []);
+    } catch (err) {
+      console.error("Error fetching chat messages:", err);
+    }
+  }
+
+  function displayChatMessages(messages) {
+    if (!messages.length) {
+      chatContainer.innerHTML = "<p class='text-muted'>No messages yet.</p>";
+      return;
+    }
+    let html = "";
+    messages.forEach(msg => {
+      html += `<div><strong>${msg.user__username}:</strong> ${msg.text}</div>`;
+    });
+    chatContainer.innerHTML = html;
+  }
+
+  async function sendChat() {
+    const msg = chatMessage.value.trim();
+    if (!msg) return;
+    try {
+      // Ensure that your URL here matches your routing; adjust if needed.
+      const resp = await fetch(`/streaming/session/{{ config.id|default:"0" }}/chat/send/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: msg }),
+      });
+      if (!resp.ok) throw new Error("Error sending chat message");
+      chatMessage.value = "";
+      fetchChatMessages();
+    } catch (err) {
+      console.error("Error sending chat message:", err);
+    }
+  }
+
+  // On page load: Enumerate devices and start default feeds.
+  window.addEventListener("load", async () => {
+    await getVideoDevices();
+    await startLiveCamera();
+    await startPreviewCamera();
+    if (!recordMode) {
+      setInterval(fetchChatMessages, 5000);
+    }
+  });
+
+  liveCameraSelect.addEventListener("change", (e) => {
+    currentLiveDeviceId = e.target.value;
+    startLiveCamera();
+  });
+  previewCameraSelect.addEventListener("change", (e) => {
+    currentPreviewDeviceId = e.target.value;
+    startPreviewCamera();
+  });
+
+  // Live feed controls.
+  startLiveBtn.addEventListener("click", startLiveCamera);
+  stopLiveBtn.addEventListener("click", stopLiveCamera);
+  switchScreenLiveBtn.addEventListener("click", switchScreenLive);
+
+  // Preview feed controls.
+  startPreviewBtn.addEventListener("click", startPreviewCamera);
+  stopPreviewBtn.addEventListener("click", stopPreviewCamera);
+  switchScreenBtn.addEventListener("click", switchScreenPreview);
+
+  pushToLiveBtn.addEventListener("click", pushPreviewToLive);
+
+  // Recording controls.
+  startRecordBtn.addEventListener("click", startRecording);
+  stopRecordBtn.addEventListener("click", stopRecording);
+
+  // Chat controls.
+  if (refreshChatBtn) refreshChatBtn.addEventListener("click", fetchChatMessages);
+  if (sendChatBtn) sendChatBtn.addEventListener("click", sendChat);
+</script>
 {% endblock %}

@@ -1,0 +1,8 @@
+# Ignored directories/files
+.DS_Store
+node_modules
+__pycache__
+*.pyc
+
+# If you plan on writing logs to the container or locally
+logs/

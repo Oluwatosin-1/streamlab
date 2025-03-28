@@ -9,6 +9,8 @@ rtmp_url_validator = RegexValidator(
     regex=rtmp_url_regex,
     message="Enter a valid URL. It should start with http, https, rtmp or rtmps."
 )
+def generate_stream_key():
+    return uuid.uuid4().hex  # Returns a 32-character hex string
 
 PLATFORM_CHOICES = [
     ('youtube', 'YouTube'),
