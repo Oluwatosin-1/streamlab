@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies (if needed)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -26,8 +26,8 @@ COPY . /app/
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Expose port (adjust according to your Django settings)
+# Expose port for the web server
 EXPOSE 8000
 
-# Run the Django development server (use gunicorn in production)
+# Default command for the web server (can be overridden in docker-compose)
 CMD ["gunicorn", "streamlab.wsgi:application", "--bind", "0.0.0.0:8000"]
