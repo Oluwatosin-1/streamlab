@@ -1,6 +1,6 @@
 /*
 * Version: 5.1.1
-* Template: Streamit - Responsive Bootstrap 5 Admin Dashboard Template
+* Template: Obairawo e Studio - Responsive Bootstrap 5 Admin Dashboard Template
 * Author: iqonic.design
 * Author URL: https://iqonic.design/
 * Design and Developed by: iqonic.design

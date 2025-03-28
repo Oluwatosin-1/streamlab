@@ -1,5 +1,5 @@
 /*
-Template: Streamit - Responsive Bootstrap 5 Admin Dashboard Template
+Template: Obairawo e Studio - Responsive Bootstrap 5 Admin Dashboard Template
 Author: iqonic.design
 Design and Developed by: iqonic.design
 NOTE: This file contains the all calender events.
