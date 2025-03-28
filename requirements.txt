@@ -157,6 +157,7 @@ vine==5.1.0
 wcwidth==0.2.13
 web3==7.9.0
 webencodings==0.5.1
+whitenoise
 websockets==13.1
 xhtml2pdf==0.2.16
 yarl==1.18.3
