@@ -21,6 +21,7 @@ from streaming.forms import (
     ChatMessageForm,
     # Assume SocialConnectionForm is defined for manual entry.
 )
+from streaming.tasks import relay_stream_task
 from streaming.utils import (
     build_youtube_auth_url,
     exchange_youtube_code_for_token,
@@ -179,31 +180,26 @@ def create_streaming_config(request):
         form = StreamingConfigurationForm()
     return render(request, "streaming/create_config.html", {"form": form})
  
+
 @login_required
 def studio_enter(request):
-    # Retrieve social accounts and active config.
     social_accounts = StreamingPlatformAccount.objects.filter(user=request.user)
     config = StreamingConfiguration.objects.filter(user=request.user, is_active=True).first()
     if not config:
         messages.error(request, "No active streaming configuration found. Please create one.")
         return redirect("streaming:config_create")
 
-    # Create the streaming session
     session = StreamingSession.objects.create(configuration=config, status="live")
-
-    # Kick off Celery task to start or relay the stream
-    from streaming.tasks import relay_stream_task
     relay_stream_task.delay(session.id)
-
-    session_uuid = session.session_uuid  # Already assigned in the model
     context = {
         "social_accounts": social_accounts,
         "config": config,
         "record_mode": 'record' in request.GET,
-        "session_uuid": session_uuid,
+        "session_uuid": session.session_uuid,  # Now available
         "session": session,
     }
     return render(request, "streaming/studio_enter.html", context)
+
 
 @login_required
 def go_live(request, config_id, session_id=None):

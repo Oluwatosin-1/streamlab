@@ -5,7 +5,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Set work directory
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies
@@ -26,8 +26,12 @@ COPY . /app/
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Expose port for the web server
+# Copy entrypoint script and ensure it's executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Expose the port for the web server
 EXPOSE 8000
 
-# Default command for the web server (can be overridden in docker-compose)
-CMD ["gunicorn", "streamlab.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
