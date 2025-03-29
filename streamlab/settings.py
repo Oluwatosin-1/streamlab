@@ -187,7 +187,9 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = [
     "https://stream.obairawoengineering.com",
+    "https://www.stream.obairawoengineering.com",
 ]
+
 
 # or
 CACHES = {

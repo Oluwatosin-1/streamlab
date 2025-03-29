@@ -1,95 +1,107 @@
-# streaming/tasks.py
-import logging
 from celery import shared_task
-from celery.exceptions import MaxRetriesExceededError
-from django.db import transaction
 from django.utils import timezone
-
-from streaming.models import StreamingSession
-from streaming.srs_utils import start_streaming_via_srs, stop_streaming_via_srs
+from .models import StreamingSession, ScheduledVideo
+import subprocess
+import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=10)
-def relay_stream_task(self, session_id):
-    """
-    Example: sets up the relay to SRS or external platform.
-    If needed, we can also call FFmpeg here to push from SRS to YouTube, etc.
-    """
+@shared_task
+def start_stream_task(session_id):
     try:
-        with transaction.atomic():
-            session = StreamingSession.objects.select_for_update().get(id=session_id)
-            if session.status != "live":
-                logger.warning("Session %s is not live. Cannot relay.", session.session_uuid)
-                return
-
-            app = "live"
-            stream_key = session.configuration.stream_key or "mystream"
-            # Possibly you do something with FFmpeg to relay from SRS to other platforms
-            result = start_streaming_via_srs(app, stream_key, retries=1) 
-            # If result is None, we raise to trigger Celery retry
-            if not result:
-                raise ValueError(f"Failed to start streaming for {stream_key}")
-
-            logger.info("Relay stream initiated for session %s (%s).", session.session_uuid, stream_key)
+        session = StreamingSession.objects.get(id=session_id)
     except StreamingSession.DoesNotExist:
-        logger.error("relay_stream_task: Session %d does not exist.", session_id)
-    except ValueError as exc:
-        logger.warning("relay_stream_task encountered an error: %s. Retrying...", exc)
-        try:
-            self.retry(exc=exc)
-        except MaxRetriesExceededError:
-            logger.error("Max retries exceeded in relay_stream_task for session %d", session_id)
-            # Optionally mark session as error:
-            session = StreamingSession.objects.get(id=session_id)
-            session.end_session(mark_error=True, error_message=str(exc))
-    except Exception as exc:
-        logger.exception("relay_stream_task encountered unexpected error. Retrying...")
-        try:
-            self.retry(exc=exc)
-        except MaxRetriesExceededError:
-            logger.error("Max retries exceeded in relay_stream_task for session %d", session_id)
-            session = StreamingSession.objects.get(id=session_id)
-            session.end_session(mark_error=True, error_message=str(exc))
+        logger.error("start_stream_task: Session %s does not exist", session_id)
+        return
+    session.status = 'live'
+    session.save()
+    logger.info("start_stream_task: Session %s is now live", session_id)
 
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=10)
-def stop_relay_task(self, session_id):
-    """
-    Example task to stop the SRS relay/stream.
-    """
+@shared_task
+def stop_stream_task(session_id):
     try:
-        with transaction.atomic():
-            session = StreamingSession.objects.select_for_update().get(id=session_id)
-            if session.status != "live":
-                logger.warning("Session %s not in 'live' status. Nothing to stop.", session.session_uuid)
-                return
-
-            app = "live"
-            stream_key = session.configuration.stream_key or "mystream"
-            response = stop_streaming_via_srs(app, stream_key, retries=1)
-            if not response:
-                raise ValueError(f"Failed to stop streaming for {stream_key}")
-
-            # Mark as ended in DB
-            session.end_session()
-            logger.info("Stopped relay for session %s", session.session_uuid)
+        session = StreamingSession.objects.get(id=session_id)
     except StreamingSession.DoesNotExist:
-        logger.error("stop_relay_task: Session %d does not exist.", session_id)
-    except ValueError as exc:
-        logger.warning("stop_relay_task encountered an error: %s. Retrying...", exc)
-        try:
-            self.retry(exc=exc)
-        except MaxRetriesExceededError:
-            logger.error("Max retries exceeded in stop_relay_task for session %d", session_id)
-            # Mark as error if needed
-            session = StreamingSession.objects.get(id=session_id)
-            session.end_session(mark_error=True, error_message=str(exc))
-    except Exception as exc:
-        logger.exception("stop_relay_task encountered unexpected error. Retrying...")
-        try:
-            self.retry(exc=exc)
-        except MaxRetriesExceededError:
-            logger.error("Max retries exceeded in stop_relay_task for session %d", session_id)
-            session = StreamingSession.objects.get(id=session_id)
-            session.end_session(mark_error=True, error_message=str(exc))
+        logger.error("stop_stream_task: Session %s does not exist", session_id)
+        return
+    session.status = 'ended'
+    session.session_end = timezone.now()
+    session.save()
+    logger.info("stop_stream_task: Session %s has ended", session_id)
+
+@shared_task
+def publish_scheduled_video_task(scheduled_id):
+    try:
+        scheduled_video = ScheduledVideo.objects.get(id=scheduled_id)
+    except ScheduledVideo.DoesNotExist:
+        logger.error("publish_scheduled_video_task: Scheduled video %s does not exist", scheduled_id)
+        return
+    scheduled_video.is_published = True
+    scheduled_video.save()
+    logger.info("publish_scheduled_video_task: Scheduled video %s published", scheduled_id)
+
+@shared_task
+def go_live_task(session_id):
+    try:
+        session = StreamingSession.objects.get(id=session_id)
+    except StreamingSession.DoesNotExist:
+        logger.error("go_live_task: Session %s does not exist", session_id)
+        return "Session does not exist."
+    
+    rtmp_source = session.configuration.get_full_rtmp_url()
+    external_rtmp_url = "rtmp://external.platform/live/streamkey"  # Replace with your target endpoint
+
+    command = [
+        "ffmpeg",
+        "-i", rtmp_source,
+        "-c", "copy",
+        "-f", "flv",
+        external_rtmp_url
+    ]
+    logger.info("go_live_task: Running command: %s", " ".join(command))
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.exception("go_live_task: FFmpeg command failed: %s", e)
+        session.error_message = str(e)
+        session.status = 'error'
+        session.save()
+        return "Streaming failed."
+    
+    session.status = "live"
+    session.save()
+    logger.info("go_live_task: Session %s is now live", session_id)
+    return "Streaming started."
+
+@shared_task
+def relay_stream_task(session_id):
+    try:
+        session = StreamingSession.objects.get(id=session_id)
+    except StreamingSession.DoesNotExist:
+        logger.error("relay_stream_task: Session %s not found", session_id)
+        return "Session not found"
+
+    rtmp_source = session.configuration.get_full_rtmp_url()
+    external_rtmp_url = "rtmp://external.platform/live/streamkey"  # Replace as needed
+
+    command = [
+        "ffmpeg",
+        "-i", rtmp_source,
+        "-c", "copy",
+        "-f", "flv",
+        external_rtmp_url
+    ]
+    logger.info("relay_stream_task: Running command: %s", " ".join(command))
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.exception("relay_stream_task: FFmpeg command failed: %s", e)
+        session.error_message = str(e)
+        session.status = 'error'
+        session.save()
+        return "Relay failed."
+    
+    session.status = "live"
+    session.save()
+    logger.info("relay_stream_task: Relay started for session %s", session_id)
+    return "Relay started"
