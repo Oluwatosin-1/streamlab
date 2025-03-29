@@ -173,6 +173,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 # CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+# Set session to expire in 30 minutes (1800 seconds)
+SESSION_COOKIE_AGE = 1800  # 30 minutes
+# Ensure session expires when the browser is closed
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Enable database-backed session storage (Ensure you run migrations)
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = [
     "https://stream.obairawoengineering.com",
 ]
