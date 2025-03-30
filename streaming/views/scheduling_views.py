@@ -57,8 +57,8 @@ def publish_scheduled_video(request, pk):
     scheduled = get_object_or_404(ScheduledVideo, pk=pk, user=request.user)
     
     # Optionally, trigger a Celery task to start streaming the scheduled video.
-    # from .tasks import publish_scheduled_video_task
-    # publish_scheduled_video_task.delay(scheduled.id)
+    from streaming.tasks import publish_scheduled_video_task
+    publish_scheduled_video_task.delay(scheduled.id)
     
     scheduled.is_published = True
     scheduled.save()

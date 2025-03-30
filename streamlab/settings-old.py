@@ -183,3 +183,9 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# #how to reload the docker 
+# docker stop streamlab_app
+# docker rm streamlab_app
+# docker build -t streamlab .
+# docker run -d -p 8000:8000 --name streamlab_app streamlab

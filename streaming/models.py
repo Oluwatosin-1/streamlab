@@ -1,10 +1,9 @@
-# streaming/models.py
 import uuid
 from django.db import models
 from django.conf import settings
 from django.core.validators import RegexValidator
 
-# A simple regex allowing protocols like http, https, rtmp, rtmps, ftp, etc.
+# Regex to validate URLs starting with http, https, rtmp, rtmps or ftp.
 rtmp_url_regex = r'^(https?|rtmps?|ftp)://.+$'
 rtmp_url_validator = RegexValidator(
     regex=rtmp_url_regex,
@@ -12,12 +11,10 @@ rtmp_url_validator = RegexValidator(
 )
 
 def generate_stream_key():
-    """
-    Generates a unique stream key (32-character hex).
-    """
+    """Generates a unique stream key (32-character hex)."""
     return uuid.uuid4().hex
 
-# Common choices for streaming platforms.
+# Streaming platform choices.
 PLATFORM_CHOICES = [
     ('youtube', 'YouTube'),
     ('facebook', 'Facebook'),
@@ -42,12 +39,13 @@ class StreamingConfiguration(models.Model):
     platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES, default='custom')
     rtmp_url = models.CharField(
         max_length=500,
-        help_text="RTMP endpoint (primary)",
+        help_text="Primary RTMP endpoint",
         validators=[rtmp_url_validator]
     )
     stream_key = models.CharField(
         max_length=255,
-        help_text="Unique stream key"
+        help_text="Unique stream key",
+        default=generate_stream_key
     )
     backup_rtmp_url = models.CharField(
         max_length=500,
@@ -85,7 +83,7 @@ class StreamingConfiguration(models.Model):
     bitrate = models.CharField(max_length=50, default='4500kbps')
     is_active = models.BooleanField(
         default=False,
-        help_text="Is this config currently active?"
+        help_text="Is this configuration active?"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -94,9 +92,7 @@ class StreamingConfiguration(models.Model):
         return f"{self.stream_title} ({self.user.username}) - {self.platform}"
 
     def get_full_rtmp_url(self):
-        """
-        Convenience method for building the primary RTMP + stream key URL.
-        """
+        """Returns the complete RTMP URL by appending the stream key."""
         return f"{self.rtmp_url}/{self.stream_key}"
 
 
@@ -115,15 +111,10 @@ class StreamingSession(models.Model):
         on_delete=models.CASCADE,
         related_name='sessions'
     )
-    # Persistent UUID for correlating logs, stats, and messages
     session_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     session_start = models.DateTimeField(auto_now_add=True)
     session_end = models.DateTimeField(blank=True, null=True)
-    status = models.CharField(
-        max_length=50,
-        choices=STATUS_CHOICES,
-        default='live'
-    )
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='live')
     viewers_count = models.PositiveIntegerField(default=0)
     error_message = models.TextField(
         blank=True,
@@ -135,22 +126,21 @@ class StreamingSession(models.Model):
         return f"Session {self.session_uuid} for {self.configuration.stream_title} - {self.status}"
 
     def end_session(self, mark_error=False, error_message=None):
-        """
-        Marks the session as ended (or errored) and sets the end time.
-        """
+        """Mark the session as ended (or errored) and set the end time."""
         if mark_error:
             self.status = "error"
             if error_message:
                 self.error_message = error_message
         else:
             self.status = "ended"
-        self.session_end = models.DateTimeField(auto_now=True)
+        # Use the current time for session_end
+        self.session_end = timezone.now()
         self.save()
 
 
 class ScheduledVideo(models.Model):
     """
-    Used for scheduling a video to be streamed or uploaded at a later time.
+    Used for scheduling a video to be streamed or uploaded later.
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
@@ -166,14 +156,14 @@ class ScheduledVideo(models.Model):
 
 class ChatMessage(models.Model):
     """
-    Represents a chat message posted in a live streaming session.
+    Represents a chat message in a live streaming session.
     """
     streaming_session = models.ForeignKey(
         StreamingSession,
         on_delete=models.CASCADE,
         related_name="chat_messages",
-        null=True,
-        blank=True
+        blank=True,
+        null=True
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -181,10 +171,7 @@ class ChatMessage(models.Model):
         related_name="chat_messages"
     )
     text = models.TextField(help_text="The content of the chat message")
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Time when the message was created"
-    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Time when the message was created")
 
     def __str__(self):
         return f"{self.user.username}: {self.text[:30]}"

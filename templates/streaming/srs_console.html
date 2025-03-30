@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>SRS Console</h2>
+<p>
+  Click <a href="{{ srs_console_url }}" target="_blank">here</a> to open the SRS Console in a new tab.
+</p>
+<iframe src="{{ srs_console_url }}" width="100%" height="600" frameborder="0"></iframe>
+{% endblock %}

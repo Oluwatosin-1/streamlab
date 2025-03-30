@@ -150,50 +150,50 @@
   </div>
 </div>
 
-<!-- JavaScript for handling cameras, live/preview switching, recording, chat, etc. -->
+<!-- JavaScript for cameras, local preview/live, chat, and now WebRTC push -->
 <script>
-  // Video element references
-  const liveVideo = document.getElementById("liveVideo");
-  const previewVideo = document.getElementById("previewVideo");
-  const noLiveText = document.getElementById("noLiveText");
-  const noPreviewText = document.getElementById("noPreviewText");
-  const streamStatus = document.getElementById("live-status");
+  // ------------------ Video element references ------------------
+  const liveVideo       = document.getElementById("liveVideo");
+  const previewVideo    = document.getElementById("previewVideo");
+  const noLiveText      = document.getElementById("noLiveText");
+  const noPreviewText   = document.getElementById("noPreviewText");
+  const streamStatus    = document.getElementById("live-status");
 
-  // Control buttons
+  // ------------------ Control buttons ------------------
   const startLiveBtn         = document.getElementById("startLiveBtn");
   const stopLiveBtn          = document.getElementById("stopLiveBtn");
-  const switchScreenBtn      = document.getElementById("switchScreenBtn");       // Share screen for preview
-  const switchScreenLiveBtn  = document.getElementById("switchScreenLiveBtn");  // Share screen for live
+  const switchScreenBtn      = document.getElementById("switchScreenBtn");       // Screen share for preview
+  const switchScreenLiveBtn  = document.getElementById("switchScreenLiveBtn");  // Screen share for live
   const startRecordBtn       = document.getElementById("startRecordBtn");
   const stopRecordBtn        = document.getElementById("stopRecordBtn");
   const pushToLiveBtn        = document.getElementById("pushToLiveBtn");
   const startPreviewBtn      = document.getElementById("startPreviewBtn");
   const stopPreviewBtn       = document.getElementById("stopPreviewBtn");
 
-  // Camera select dropdowns
+  // ------------------ Camera select dropdowns ------------------
   const liveCameraSelect    = document.getElementById("liveCameraSelect");
   const previewCameraSelect = document.getElementById("previewCameraSelect");
 
-  // Chat elements
-  const refreshChatBtn = document.getElementById("refreshChatBtn");
-  const chatContainer  = document.getElementById("chatContainer");
-  const sendChatBtn    = document.getElementById("sendChatBtn");
-  const chatMessage    = document.getElementById("chatMessage");
+  // ------------------ Chat elements ------------------
+  const refreshChatBtn  = document.getElementById("refreshChatBtn");
+  const chatContainer   = document.getElementById("chatContainer");
+  const sendChatBtn     = document.getElementById("sendChatBtn");
+  const chatMessage     = document.getElementById("chatMessage");
 
-  // Session & mode variables
+  // ------------------ Session & mode variables ------------------
   const sessionUuid = "{{ session_uuid }}";
   const recordMode  = {{ record_mode|yesno:"true,false" }};
 
-  // Streams and recording variables
-  let liveStream          = null;  // Live feed (camera or screen share)
-  let previewStream       = null;  // Preview feed (camera or screen share)
-  let mediaRecorder       = null;
-  let recordedChunks      = [];
-  let videoDevices        = [];
-  let currentLiveDeviceId = null;
+  // ------------------ Streams and recording variables ------------------
+  let liveStream           = null;  // Live feed (camera or screen share)
+  let previewStream        = null;  // Preview feed (camera or screen share)
+  let mediaRecorder        = null;
+  let recordedChunks       = [];
+  let videoDevices         = [];
+  let currentLiveDeviceId  = null;
   let currentPreviewDeviceId = null;
-
-  // Enumerate video devices and populate camera selects
+  
+  // ========== Enumerate video devices and populate camera selects ==========
   async function getVideoDevices() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -202,7 +202,7 @@
         if (!currentLiveDeviceId) currentLiveDeviceId = device.deviceId;
       });
       populateCameraSelect(previewCameraSelect, (device, idx) => {
-        // Let the second device be preview if it exists; otherwise also default to the first device
+        // If you have multiple cameras, you can default the second to preview, etc.
         if (videoDevices.length > 1 && idx === 1) {
           currentPreviewDeviceId = device.deviceId;
         } else if (videoDevices.length === 1 && idx === 0) {
@@ -225,7 +225,7 @@
     });
   }
 
-  // Start live camera feed
+  // ========== Start/Stop live camera feed (Local) ==========
   async function startLiveCamera() {
     try {
       const constraints = {
@@ -256,7 +256,7 @@
     }
   }
 
-  // Start preview camera feed
+  // ========== Start/Stop preview camera feed (Local) ==========
   async function startPreviewCamera() {
     try {
       if (!currentPreviewDeviceId) {
@@ -292,7 +292,7 @@
     noPreviewText.style.display = "block";
   }
 
-  // Switch the *live* feed to screen share
+  // ========== Screen sharing (Live or Preview) ==========
   async function switchScreenLive() {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -307,7 +307,6 @@
     }
   }
 
-  // Switch the *preview* feed to screen share
   async function switchScreenPreview() {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -321,9 +320,7 @@
     }
   }
 
-  /**
-   * Push the preview feed into the live feed, but clone the tracks so future preview changes don't affect live.
-   */
+  // ========== Push preview feed into the live feed (Local concept) ==========
   function pushPreviewToLive() {
     if (!previewStream) {
       alert("No preview stream available to push.");
@@ -344,13 +341,55 @@
     noLiveText.style.display = "none";
   }
 
-  // Recording the *live* feed
+  // ========== NEW: Push your liveStream to Django server (aiortc) ==========
+  async function pushLiveStreamToServer() {
+    // We can call this from pushPreviewToLive() or a separate button.
+    // For simplicity, let's attach it to pushPreviewToLive after it sets up 'liveStream'.
+    if (!liveStream) {
+      alert("No liveStream to push to server. Please start or push preview to live first.");
+      return;
+    }
+
+    try {
+      // 1) Create a new RTCPeerConnection
+      const pc = new RTCPeerConnection();
+
+      // 2) Add all tracks from the liveStream to the RTCPeerConnection
+      liveStream.getTracks().forEach(track => pc.addTrack(track, liveStream));
+
+      // 3) Create local offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // 4) Send offer to server (Django /offer/ endpoint)
+      const response = await fetch("/streaming/offer/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          'sdp': pc.localDescription.sdp,
+          'type': pc.localDescription.type
+        })
+      });
+      if (!response.ok) throw new Error("Failed to send offer to server");
+      const answerData = await response.json();
+
+      // 5) Set remote description
+      await pc.setRemoteDescription(answerData);
+      alert("WebRTC negotiation complete. Live stream is being pushed to server!");
+    } catch (err) {
+      console.error("Error pushing live stream to server:", err);
+      alert("Failed to push live stream to server.");
+    }
+  }
+
+  // ========== Recording the *live* feed locally ==========
   function startRecording() {
     if (!liveStream) {
       alert("Please start a live feed before recording.");
       return;
     }
     recordedChunks = [];
+    // Using VP9 in a webm container for demonstration
     mediaRecorder = new MediaRecorder(liveStream, { mimeType: 'video/webm; codecs=vp9' });
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunks.push(e.data);
@@ -390,7 +429,7 @@
     mediaRecorder.stop();
   }
 
-  // Chat fetch & send
+  // ========== Chat fetch & send ==========
   async function fetchChatMessages() {
     try {
       const r = await fetch(`/streaming/fetch_chat_messages/?session_uuid=${sessionUuid}`);
@@ -434,7 +473,7 @@
     }
   }
 
-  // On page load: get devices and start default camera feeds
+  // ========== On page load ========== 
   window.addEventListener("load", async () => {
     await getVideoDevices();
     // Start the default live camera
@@ -447,7 +486,7 @@
     }
   });
 
-  // Camera select changes
+  // ========== Camera select changes ==========
   liveCameraSelect.addEventListener("change", (e) => {
     currentLiveDeviceId = e.target.value;
     startLiveCamera();
@@ -457,18 +496,24 @@
     startPreviewCamera();
   });
 
-  // Buttons for the live feed
+  // ========== Button event listeners ==========
+  // Live feed
   startLiveBtn.addEventListener("click", startLiveCamera);
   stopLiveBtn.addEventListener("click", stopLiveCamera);
   switchScreenLiveBtn.addEventListener("click", switchScreenLive);
 
-  // Buttons for the preview feed
+  // Preview feed
   startPreviewBtn.addEventListener("click", startPreviewCamera);
   stopPreviewBtn.addEventListener("click", stopPreviewCamera);
   switchScreenBtn.addEventListener("click", switchScreenPreview);
 
-  // The critical difference: pushPreviewToLive clones tracks, so the preview changes no longer affect live
-  pushToLiveBtn.addEventListener("click", pushPreviewToLive);
+  // Local push from preview → live
+  pushToLiveBtn.addEventListener("click", () => {
+    pushPreviewToLive();
+    // Also do a WebRTC push to server after we clone the preview to live
+    // If you prefer a separate button, remove this line:
+    pushLiveStreamToServer();
+  });
 
   // Recording
   startRecordBtn.addEventListener("click", startRecording);

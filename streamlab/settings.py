@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "streaming",  # RTMP Streaming & Social Connection 
     "dashboard",  # User Dashboard Integration
     "whitenoise",
+    "social_django",
 ]
 
 MIDDLEWARE = [
@@ -100,6 +101,13 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.facebook.FacebookOAuth2',
+    'social_core.backends.google.GoogleOAuth2', 
+    'django.contrib.auth.backends.ModelBackend',
+)
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -144,30 +152,21 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+ 
+SOCIAL_AUTH_FACEBOOK_KEY = '3999257497026619'
+SOCIAL_AUTH_FACEBOOK_SECRET = 'a3711cf22c091b41af61cd4bbc1f86e4'
 
-# steamlab/settings.py (or your environment variables)
-GOOGLE_OAUTH_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, "client_secret.json")
-
-import os
-
-FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "3999257497026619")
-FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "a3711cf22c091b41af61cd4bbc1f86e4") 
-FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI", "https://localhost:8000/streaming/facebook/callback/")
-
-# e.g. "http://localhost:8000/streaming/youtube/callback/"
-# settings.py
-YOUTUBE_CLIENT_ID = "1003940566003-nlhu7pb6t0rr889ic4mj6c42qkonhq3n.apps.googleusercontent.com"
-YOUTUBE_CLIENT_SECRET = "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"
-YOUTUBE_REDIRECT_URI = "http://localhost:8000/streaming/youtube/callback/"  # Updated redirect URI
-
-# e.g. "http://localhost:8000/streaming/facebook/callback/"
-FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI")
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1003940566003-nlhu7pb6t0rr889ic4mj6c42qkonhq3n.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 
 SRS_SERVER_HOST = 'localhost'  # or your SRS server domain/IP if different
 SRS_API_PORT = 1985
 # settings.py
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+# CELERY_BROKER_URL = 'redis://redis:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -189,6 +188,19 @@ CSRF_TRUSTED_ORIGINS = [
     "https://stream.obairawoengineering.com",
     "https://www.stream.obairawoengineering.com",
 ]
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'streamlab.social_pipeline.save_stream_info',  # Add your custom function
+)
 
 
 # or

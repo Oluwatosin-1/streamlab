@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+    <video id="video" autoplay muted playsinline></video>
+    <button onclick="startStream()">Start Stream</button>
+
+    <script>
+    async function startStream() {
+        const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+        document.getElementById('video').srcObject = stream;
+
+        const pc = new RTCPeerConnection();
+        
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const response = await fetch('/offer/', {
+            method: 'POST',
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({'sdp': pc.localDescription.sdp, 'type': pc.localDescription.type})
+        });
+
+        const answer = await response.json();
+        await pc.setRemoteDescription(answer);
+    }
+    </script>
+
+{% endblock %}
