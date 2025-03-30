@@ -190,3 +190,5 @@ CELERY_RESULT_SERIALIZER = 'json'
 # docker rm streamlab_app
 # docker build -t streamlab .
 # docker run -d -p 8000:8000 --name streamlab_app streamlab
+# docker-compose down
+# docker-compose up -d --build
