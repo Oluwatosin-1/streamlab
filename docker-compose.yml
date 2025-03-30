@@ -34,7 +34,11 @@ services:
 
   redis:
     image: redis:6-alpine
-    container_name: streamlab_redis 
+    container_name: streamlab_redis
+    networks:
+      appnet:
+        aliases:
+          - redis
 
 volumes:
   pgdata:
