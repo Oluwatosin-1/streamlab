@@ -162,8 +162,8 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 SRS_SERVER_HOST = 'localhost'  # or your SRS server domain/IP if different
 SRS_API_PORT = 1985
 # settings.py
-CELERY_BROKER_URL = 'redis://streamlab_redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://streamlab_redis:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
 
 CELERY_ACCEPT_CONTENT = ['json']

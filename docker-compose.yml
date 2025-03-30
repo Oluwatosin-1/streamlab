@@ -8,9 +8,6 @@ services:
       - "8001:8000"
     volumes:
       - .:/app
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - db
       - redis
@@ -23,22 +20,11 @@ services:
     command: celery -A streamlab worker -l info
     volumes:
       - .:/app
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - redis
       - db
     networks:
       - appnet
-
-  redis:
-    image: redis:6-alpine
-    container_name: streamlab_redis
-    networks:
-      appnet:
-        aliases:
-          - redis
 
   db:
     image: postgres:13
@@ -51,6 +37,14 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - appnet
+
+  redis:
+    image: redis:6-alpine
+    container_name: streamlab_redis
+    networks:
+      appnet:
+        aliases:
+          - redis
 
 volumes:
   pgdata:
