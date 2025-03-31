@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container my-4">
+  <h2>Relay Monitoring Dashboard</h2>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>RTMP URL</th>
+        <th>Last Relay Status</th>
+        <th>Last Updated</th>
+        <th>Log</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for account in accounts %}
+      <tr>
+        <td>{{ account.get_platform_display }}</td>
+        <td>{{ account.rtmp_url }}/{{ account.stream_key }}</td>
+        <td>{{ account.relay_status|default:"N/A" }}</td>
+        <td>
+          {% if account.relay_last_updated %}
+            {{ account.relay_last_updated|date:"Y-m-d H:i:s" }}
+          {% else %}
+            N/A
+          {% endif %}
+        </td>
+        <td>
+          <pre style="max-height: 150px; overflow: auto;">{{ account.relay_log|default:"No logs available." }}</pre>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+    const streamKey = "{{ session.configuration.stream_key }}";
+  
+    function fetchRelayStatus() {
+      fetch(`/check_stream_status/${streamKey}`)
+        .then(response => response.json())
+        .then(data => {
+          const tbody = document.getElementById("relay-status-table");
+          tbody.innerHTML = "";
+  
+          data.relay_stats.forEach(stat => {
+            const row = `
+              <tr>
+                <td>${stat.platform}</td>
+                <td>${stat.rtmp_url || "—"}</td>
+                <td>${stat.status}</td>
+                <td>${stat.last_attempted}</td>
+                <td><pre style="max-height: 150px; overflow: auto;">${stat.log_summary}</pre></td>
+              </tr>`;
+            tbody.innerHTML += row;
+          });
+        });
+    }
+  
+    setInterval(fetchRelayStatus, 5000);
+    fetchRelayStatus(); // Initial fetch
+  </script>
+  
+{% endblock %}

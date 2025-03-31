@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from dashboard.models import DashboardSettings
-from streaming.models import StreamingConfiguration, StreamingSession
-# from payments.models import UserSubscription
+from streaming.models import StreamingConfiguration, StreamingPlatformAccount, StreamingSession
+import json
+from django.http import JsonResponse
+from streaming.srs_utils import get_stream_stats 
 
 @login_required
 def dashboard(request):
@@ -148,3 +150,49 @@ def analytics(request):
         'some_analytics_data': {...}  # Replace with real data
     }
     return render(request, "dashboard/analytics.html", context)
+ 
+@login_required
+def relay_monitor(request):
+    # Fetch latest live session (or filter by param)
+    session = StreamingSession.objects.filter(configuration__user=request.user, status="live").order_by('-session_start').first()
+    if not session:
+        return render(request, "streaming/relay_monitor.html", {"relay_statuses": [], "session": None})
+
+    relay_statuses = session.relay_statuses.all()
+
+    return render(request, "streaming/relay_monitor.html", {
+        "relay_statuses": relay_statuses,
+        "session": session
+    })
+
+
+@login_required
+def stream_health(request):
+    # Assume the active configuration is used.
+    config = request.user.streaming_configurations.filter(is_active=True).first()
+    if not config:
+        return JsonResponse({"error": "No active configuration"}, status=404)
+    stats = get_stream_stats("live", config.stream_key)
+    if stats:
+        return JsonResponse({"status": "ok", "stats": stats})
+    return JsonResponse({"error": "Failed to retrieve stream stats"}, status=500)
+
+def check_stream_status(request, stream_key):
+    app = "live"
+    stats = get_stream_stats(app, stream_key)
+
+    session = StreamingSession.objects.filter(configuration__stream_key=stream_key, status="live").first()
+    relay_stats = []
+    if session:
+        for relay in session.relay_statuses.all():
+            relay_stats.append({
+                "platform": relay.platform,
+                "status": relay.status,
+                "log_summary": relay.log_summary,
+                "last_attempted": relay.last_attempted.strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+    return JsonResponse({
+        "srs_stats": stats,
+        "relay_stats": relay_stats
+    })

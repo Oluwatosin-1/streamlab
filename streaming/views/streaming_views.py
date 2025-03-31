@@ -2,10 +2,10 @@ import json
 import subprocess
 import logging
 from datetime import datetime, timezone
-
+from streaming.srs_utils import get_stream_stats
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -368,3 +368,9 @@ def studio_enter(request):
         "session": session,
     }
     return render(request, "streaming/studio_enter.html", context)
+
+
+def check_stream_status(request, stream_key):
+    app = "live"
+    stats = get_stream_stats(app, stream_key)
+    return JsonResponse({"status": "ok", "srs_stats": stats})

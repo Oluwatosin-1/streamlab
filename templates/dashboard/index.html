@@ -16,6 +16,7 @@
         <a class="nav-link {% if active_tab == 'scheduled' %}active{% endif %}" href="{% url 'dashboard:scheduled' %}">Scheduled</a>
       </li>
     </ul>
+    <!-- “New Stream” links to your “new_stream” template or view -->
     <a href="{% url 'streaming:new_stream' %}" class="btn btn-success">
       <i class="fa fa-plus me-1"></i> New Stream
     </a>
@@ -40,10 +41,12 @@
                class="img-fluid" 
                style="width: 100px; height: 60px; object-fit: cover;">
         </div>
-        <!-- Studio Actions (top-right corner) -->
+        <!-- Actions (top-right corner) -->
         <div class="position-absolute top-0 end-0 m-2 d-flex align-items-center">
+          <!-- Example placeholders for “Draft” or “Studio” actions. 
+               Adjust or remove if not applicable to your workflow. -->
           <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-secondary btn-sm me-2">Draft</a>
-          <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-success btn-sm">Studio</a>
+          <a href="{% url 'streaming:studio' %}" class="btn btn-outline-success btn-sm">Studio</a>
         </div>
 
         <div class="card-header mt-5">
@@ -82,12 +85,12 @@
           {% endif %}
         </div>
         <div class="card-header mt-5">
-          <h4 class="card-title mb-0">Stream via RTMP (OBS, Vmix, Zoom)</h4>
+          <h4 class="card-title mb-0">Stream via RTMP (OBS, vMix, Zoom)</h4>
         </div>
         <div class="card-body d-flex flex-column justify-content-between">
           <p class="mb-3">
             Use our default RTMP server to stream from your broadcasting software.
-            Customize settings to fit your production.
+            Customize settings to fit your production needs.
           </p>
         </div>
         <!-- Bottom-right corner: Share / Invite -->
@@ -104,6 +107,8 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <h4 class="card-title mb-0">Stream to Social Platforms</h4>
       <div>
+        <!-- Example links to connect Instagram and Telegram. 
+             Adjust as needed for your platforms. -->
         <a href="{% url 'streaming:connect_social' 'instagram' %}" class="btn btn-outline-info me-2">
           <img src="{% static 'images/icons/instagram-icon.png' %}" 
                alt="Instagram" 
@@ -166,12 +171,21 @@
                 </td>
                 <td>
                   {% if cfg.is_active %}
-                    <!-- Show a 'Go Live' button if active -->
-                    <a href="{% url 'streaming:go_live' cfg.id %}" class="btn btn-sm btn-primary me-1">Go Live</a>
-                    <a href="{% url 'streaming:config_update' cfg.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <!-- “Go Live” triggers the new route “go_live/<int:config_id>/” -->
+                    <a href="{% url 'streaming:go_live' config_id=cfg.id %}"
+                       class="btn btn-sm btn-primary me-1">
+                      Go Live
+                    </a>
+                    <a href="{% url 'streaming:config_update' cfg.id %}"
+                       class="btn btn-sm btn-outline-secondary">
+                      Edit
+                    </a>
                   {% else %}
-                    <!-- If not active, show a 'Complete' or 'Activate' button -->
-                    <a href="{% url 'streaming:config_update' cfg.id %}" class="btn btn-sm btn-outline-warning me-1">Complete</a>
+                    <!-- If not active, show a “Complete” button to update & activate. -->
+                    <a href="{% url 'streaming:config_update' cfg.id %}"
+                       class="btn btn-sm btn-outline-warning me-1">
+                      Complete
+                    </a>
                   {% endif %}
                 </td>
               </tr>

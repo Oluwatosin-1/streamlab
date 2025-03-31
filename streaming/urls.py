@@ -1,6 +1,9 @@
 from django.urls import path
 from django.views.generic import TemplateView
   
+from dashboard.views import check_stream_status 
+
+from streaming.views.srs_hooks import srs_on_publish, srs_on_unpublish
 from streaming.views.streaming_views import (
     StreamingConfigurationListView,
     StreamingConfigurationCreateView,
@@ -68,11 +71,15 @@ urlpatterns = [
     
     # Recording and additional live control endpoints
     path("record/local/", local_record_session, name="local_record_session"),
-    path("record/upload/", upload_recorded, name="upload_recorded"),
-    path("configuration/<int:config_id>/go_live/", go_live, name="go_live"),
+    path("record/upload/", upload_recorded, name="upload_recorded"), 
     # path("session/<int:session_id>/stop_live/", stop_live, name="stop_live"),
     # path("session/<int:session_id>/stats/", stream_stats, name="stream_stats"),
-    
+    path('check_stream_status/<str:stream_key>/', check_stream_status, name="check_stream_status"),
+    path('go-live/<int:config_id>/', go_live, name='go_live'), 
+
+    path('api/srs/on_publish/', srs_on_publish, name='srs_on_publish'),
+    path('api/srs/on_unpublish/', srs_on_unpublish, name='srs_on_unpublish'),
+
     # **New Studio Endpoint:**
     path("studio/", studio_enter, name="studio"),
     path('console/', srs_console, name='srs_console'),

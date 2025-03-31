@@ -131,6 +131,40 @@
       </div>
       {% endif %}
     </div>
+    <!-- Relay Monitoring Dashboard -->
+    <div class="col-12 mt-4">
+      <h4>Relay Monitoring Dashboard</h4>
+      <table class="table table-bordered">
+          <thead>
+              <tr>
+                  <th>Platform</th>
+                  <th>RTMP URL</th>
+                  <th>Relay Status</th>
+                  <th>Last Updated</th>
+                  <th>Log Output</th>
+              </tr>
+          </thead>
+          <tbody id="relay-monitor-body">
+              {% for account in social_accounts %}
+              <tr>
+                  <td>{{ account.get_platform_display }}</td>
+                  <td>{{ account.rtmp_url }}/{{ account.stream_key }}</td>
+                  <td>{{ account.relay_status|default:"Pending" }}</td>
+                  <td>
+                      {% if account.relay_last_updated %}
+                          {{ account.relay_last_updated|date:"Y-m-d H:i:s" }}
+                      {% else %}
+                          N/A
+                      {% endif %}
+                  </td>
+                  <td>
+                      <pre style="max-height: 150px; overflow: auto;">{{ account.relay_log|default:"No logs available." }}</pre>
+                  </td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
   </div>
   
   <!-- Footer Toolbar -->
@@ -150,7 +184,7 @@
   </div>
 </div>
 
-<!-- JavaScript for cameras, local preview/live, chat, and now WebRTC push -->
+<!-- JavaScript for cameras, local preview/live, chat, WebRTC push and polling -->
 <script>
   // ------------------ Video element references ------------------
   const liveVideo       = document.getElementById("liveVideo");
@@ -183,6 +217,8 @@
   // ------------------ Session & mode variables ------------------
   const sessionUuid = "{{ session_uuid }}";
   const recordMode  = {{ record_mode|yesno:"true,false" }};
+  // 'config' is available from context; use its stream_key for SRS/WebRTC association
+  const streamKey   = "{{ config.stream_key }}";
 
   // ------------------ Streams and recording variables ------------------
   let liveStream           = null;  // Live feed (camera or screen share)
@@ -202,7 +238,6 @@
         if (!currentLiveDeviceId) currentLiveDeviceId = device.deviceId;
       });
       populateCameraSelect(previewCameraSelect, (device, idx) => {
-        // If you have multiple cameras, you can default the second to preview, etc.
         if (videoDevices.length > 1 && idx === 1) {
           currentPreviewDeviceId = device.deviceId;
         } else if (videoDevices.length === 1 && idx === 0) {
@@ -233,7 +268,6 @@
         audio: true
       };
       if (liveStream) {
-        // Stop any existing live tracks before re-starting
         liveStream.getTracks().forEach(t => t.stop());
       }
       liveStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -269,7 +303,6 @@
         audio: false
       };
       if (previewStream) {
-        // Stop any existing preview tracks
         previewStream.getTracks().forEach(t => t.stop());
       }
       previewStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -296,7 +329,6 @@
   async function switchScreenLive() {
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      // Stop existing live tracks
       if (liveStream) liveStream.getTracks().forEach(t => t.stop());
       liveStream = displayStream;
       liveVideo.srcObject = liveStream;
@@ -326,11 +358,9 @@
       alert("No preview stream available to push.");
       return;
     }
-    // Stop the existing live stream if any
     if (liveStream) {
       liveStream.getTracks().forEach(t => t.stop());
     }
-    // Create a new MediaStream with cloned tracks from the preview
     const newLiveStream = new MediaStream();
     previewStream.getTracks().forEach(track => {
       newLiveStream.addTrack(track.clone());
@@ -341,28 +371,19 @@
     noLiveText.style.display = "none";
   }
 
-  // ========== NEW: Push your liveStream to Django server (aiortc) ==========
+  // ========== Push your liveStream to Django server (WebRTC offer) ==========
   async function pushLiveStreamToServer() {
-    // We can call this from pushPreviewToLive() or a separate button.
-    // For simplicity, let's attach it to pushPreviewToLive after it sets up 'liveStream'.
     if (!liveStream) {
       alert("No liveStream to push to server. Please start or push preview to live first.");
       return;
     }
-
     try {
-      // 1) Create a new RTCPeerConnection
       const pc = new RTCPeerConnection();
-
-      // 2) Add all tracks from the liveStream to the RTCPeerConnection
       liveStream.getTracks().forEach(track => pc.addTrack(track, liveStream));
-
-      // 3) Create local offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
-      // 4) Send offer to server (Django /offer/ endpoint)
-      const response = await fetch("/streaming/offer/", {
+      // Include stream_key in the URL as a GET parameter
+      const response = await fetch(`/streaming/offer/?stream_key=${encodeURIComponent(streamKey)}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -372,8 +393,6 @@
       });
       if (!response.ok) throw new Error("Failed to send offer to server");
       const answerData = await response.json();
-
-      // 5) Set remote description
       await pc.setRemoteDescription(answerData);
       alert("WebRTC negotiation complete. Live stream is being pushed to server!");
     } catch (err) {
@@ -382,14 +401,13 @@
     }
   }
 
-  // ========== Recording the *live* feed locally ==========
+  // ========== Recording the live feed locally ==========
   function startRecording() {
     if (!liveStream) {
       alert("Please start a live feed before recording.");
       return;
     }
     recordedChunks = [];
-    // Using VP9 in a webm container for demonstration
     mediaRecorder = new MediaRecorder(liveStream, { mimeType: 'video/webm; codecs=vp9' });
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunks.push(e.data);
@@ -435,7 +453,7 @@
       const r = await fetch(`/streaming/fetch_chat_messages/?session_uuid=${sessionUuid}`);
       if (!r.ok) throw new Error("Failed to fetch chat messages");
       const messages = await r.json();
-      displayChatMessages(messages);
+      displayChatMessages(messages.messages || []);
     } catch (err) {
       console.error("Error fetching chat messages:", err);
     }
@@ -473,14 +491,28 @@
     }
   }
 
-  // ========== On page load ========== 
+  // ========== Polling for SRS stream health and relay status ==========
+  function pollStreamStatus() {
+    fetch(`/check_stream_status/${encodeURIComponent(streamKey)}`)
+      .then(response => response.json())
+      .then(data => {
+        console.log("SRS Stats:", data.srs_stats);
+        if (data.relay_stats && data.relay_stats.length > 0) {
+          streamStatus.textContent = `Live to ${data.relay_stats.length} platform(s)`;
+        } else {
+          streamStatus.textContent = "Live (No relay data)";
+        }
+      })
+      .catch(err => console.error("Stream status polling error:", err));
+  }
+
+  setInterval(pollStreamStatus, 5000);
+
+  // ========== On page load ==========
   window.addEventListener("load", async () => {
     await getVideoDevices();
-    // Start the default live camera
     await startLiveCamera();
-    // Start the default preview camera
     await startPreviewCamera();
-    // If not in record mode, periodically fetch chat
     if (!recordMode) {
       setInterval(fetchChatMessages, 5000);
     }
@@ -497,29 +529,18 @@
   });
 
   // ========== Button event listeners ==========
-  // Live feed
   startLiveBtn.addEventListener("click", startLiveCamera);
   stopLiveBtn.addEventListener("click", stopLiveCamera);
   switchScreenLiveBtn.addEventListener("click", switchScreenLive);
-
-  // Preview feed
   startPreviewBtn.addEventListener("click", startPreviewCamera);
   stopPreviewBtn.addEventListener("click", stopPreviewCamera);
   switchScreenBtn.addEventListener("click", switchScreenPreview);
-
-  // Local push from preview → live
   pushToLiveBtn.addEventListener("click", () => {
     pushPreviewToLive();
-    // Also do a WebRTC push to server after we clone the preview to live
-    // If you prefer a separate button, remove this line:
     pushLiveStreamToServer();
   });
-
-  // Recording
   startRecordBtn.addEventListener("click", startRecording);
   stopRecordBtn.addEventListener("click", stopRecording);
-
-  // Chat
   if (refreshChatBtn) refreshChatBtn.addEventListener("click", fetchChatMessages);
   if (sendChatBtn)    sendChatBtn.addEventListener("click", sendChat);
 </script>

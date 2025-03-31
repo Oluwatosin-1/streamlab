@@ -217,3 +217,11 @@ class StreamingPlatformAccount(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.platform} ({self.account_username})"
+    
+class StreamingRelayStatus(models.Model):
+    session = models.ForeignKey(StreamingSession, on_delete=models.CASCADE, related_name="relay_statuses")
+    platform = models.CharField(max_length=100)
+    rtmp_url = models.URLField()
+    status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("success", "Success"), ("error", "Error")], default="pending")
+    last_attempted = models.DateTimeField(auto_now=True)
+    log_summary = models.TextField(blank=True, null=True)
