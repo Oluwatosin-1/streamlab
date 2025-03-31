@@ -23,6 +23,9 @@ services:
     depends_on:
       - redis
       - db
+    environment:
+      - CELERY_BROKER_URL=redis://streamlab_redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://streamlab_redis:6379/0
     networks:
       - appnet
 
