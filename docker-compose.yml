@@ -10,6 +10,7 @@ services:
       - .:/app
     depends_on:
       - db
+      - redis
     networks:
       - appnet
 
@@ -20,6 +21,7 @@ services:
     volumes:
       - .:/app
     depends_on:
+      - redis
       - db
     networks:
       - appnet
@@ -35,6 +37,14 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - appnet
+
+  redis:
+    image: redis:6-alpine
+    container_name: streamlab_redis
+    networks:
+      appnet:
+        aliases:
+          - redis
 
 volumes:
   pgdata:
