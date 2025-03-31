@@ -47,10 +47,11 @@ services:
     networks:
       appnet:
         aliases:
-          - redis
+          - streamlab_redis
 
 volumes:
   pgdata:
 
 networks:
   appnet:
+    driver: bridge
