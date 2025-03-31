@@ -165,8 +165,6 @@ SRS_API_PORT = 1985
 CELERY_BROKER_URL = 'redis://streamlab_redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://streamlab_redis:6379/0'
 
-
-
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json' 
