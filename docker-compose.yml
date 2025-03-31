@@ -44,10 +44,24 @@ services:
   redis:
     image: redis:6-alpine
     container_name: streamlab_redis
+    sysctls:
+      vm.overcommit_memory: 1
     networks:
       appnet:
         aliases:
           - streamlab_redis
+
+  srs:
+    image: ossrs/srs:latest
+    container_name: srs
+    command: "./objs/srs -c conf/srs.conf"  # Adjust the path to your SRS config if needed
+    ports:
+      - "1935:1935"    # RTMP
+      - "1985:1985"    # SRS REST API
+      - "8080:8080"    # SRS HTTP (for dashboard or web interface)
+      # Add any additional ports if necessary (e.g., UDP ports)
+    networks:
+      - appnet
 
 volumes:
   pgdata:
