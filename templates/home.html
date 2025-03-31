@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid homepage my-4">
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{% url 'home' %}">StreamLab</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+         <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+           <li class="nav-item">
+             <a class="nav-link {% if not active_tab or active_tab == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
+           </li>
+           <li class="nav-item">
+             <a class="nav-link" href="{% url 'dashboard:index' %}">Dashboard</a>
+           </li>
+           <li class="nav-item">
+             <a class="nav-link" href="{% url 'streaming:config_list' %}">My Streams</a>
+           </li>
+         </ul>
+         <ul class="navbar-nav">
+           {% if user.is_authenticated %}
+             <li class="nav-item">
+               <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+             </li>
+           {% else %}
+             <li class="nav-item">
+               <a class="nav-link" href="{% url 'login' %}">Login</a>
+             </li>
+           {% endif %}
+         </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Row: Two Primary Cards -->
+  <div class="row mb-4">
+    <!-- Browser Streaming Card -->
+    <div class="col-md-6 mb-3 mb-md-0">
+      <div class="card h-100">
+        <div class="card-header">
+          <h4>Go Live from Your Browser</h4>
+        </div>
+        <div class="card-body">
+          <p>Stream directly from your browser without additional software. Customize layouts, add overlays, and engage with your audience in real time.</p>
+          <a href="{% url 'studio_enter' %}" class="btn btn-primary">Enter Studio & Go Live</a>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <a href="{% url 'streaming:manage_channels' %}" class="btn btn-outline-secondary me-2">Manage Channels</a>
+          <a href="{% url 'streaming:new_stream' %}" class="btn btn-outline-success">New Stream</a>
+        </div>
+      </div>
+    </div>
+    <!-- RTMP Streaming Card -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h4>Stream via RTMP</h4>
+        </div>
+        <div class="card-body">
+          <p>Use our default RTMP server to stream with OBS, vMix, or Zoom. Perfect for professional setups with advanced encoding options.</p>
+          <a href="{% url 'streaming:config_create' %}" class="btn btn-warning">Setup RTMP Configuration</a>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+          <a href="{% url 'streaming:config_list' %}" class="btn btn-outline-secondary">View Configurations</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Streaming Section -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h4 class="card-title mb-0">Stream to Social Platforms</h4>
+      <div>
+        <a href="{% url 'streaming:connect_social' 'instagram' %}" class="btn btn-outline-info me-2">
+          <img src="{% static 'images/icons/instagram-icon.png' %}" alt="Instagram" style="height:20px;"> Instagram
+        </a>
+        <a href="{% url 'streaming:connect_social' 'facebook' %}" class="btn btn-outline-info me-2">
+          <img src="{% static 'images/icons/facebook-icon.png' %}" alt="Facebook" style="height:20px;"> Facebook
+        </a>
+        <a href="{% url 'streaming:connect_social' 'telegram' %}" class="btn btn-outline-info">
+          <img src="{% static 'images/icons/telegram-icon.png' %}" alt="Telegram" style="height:20px;"> Telegram
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      <p>Connect your social media accounts to broadcast live across multiple platforms and expand your audience reach.</p>
+    </div>
+  </div>
+
+  <!-- Recent Streams Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h4>Recent Streams</h4>
+    </div>
+    <div class="card-body">
+      {% if recent_streams %}
+        <ul class="list-group">
+          {% for stream in recent_streams %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>{{ stream.configuration.stream_title }}</strong> - {{ stream.status }}</span>
+              <a href="{% url 'streaming:session_detail' stream.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No recent streams found. Start your first live session!</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

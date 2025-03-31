@@ -3,12 +3,14 @@ from django.urls import path, include
 from django.contrib.auth.views import LogoutView
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
  
  
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include("users.urls")),  
     path("dashboard/", include("dashboard.urls")),
+    path('', TemplateView.as_view(template_name="home.html"), name='home'),
     path("streaming/", include("streaming.urls", namespace="streaming")),
     path("logout/", LogoutView.as_view(next_page="login"), name="logout"),
     path('social-auth/', include('social_django.urls', namespace='social')), 
