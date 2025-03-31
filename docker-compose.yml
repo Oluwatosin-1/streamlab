@@ -44,8 +44,7 @@ services:
   redis:
     image: redis:6-alpine
     container_name: streamlab_redis
-    sysctls:
-      vm.overcommit_memory: 1
+    # Removed sysctls because setting vm.overcommit_memory is not permitted in a separate container namespace.
     networks:
       appnet:
         aliases:
@@ -54,12 +53,11 @@ services:
   srs:
     image: ossrs/srs:latest
     container_name: srs
-    command: "./objs/srs -c conf/srs.conf"  # Adjust the path to your SRS config if needed
+    command: "./objs/srs -c conf/srs.conf"  # Adjust the path to your SRS configuration file as needed.
     ports:
       - "1935:1935"    # RTMP
       - "1985:1985"    # SRS REST API
-      - "8080:8080"    # SRS HTTP (for dashboard or web interface)
-      # Add any additional ports if necessary (e.g., UDP ports)
+      - "8080:8080"    # SRS HTTP (dashboard/web interface)
     networks:
       - appnet
 
