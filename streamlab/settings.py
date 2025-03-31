@@ -200,18 +200,17 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
     'streamlab.social_pipeline.save_stream_info',  # Add your custom function
-)
-
-
-# or
+) 
+# Django CACHES configuration
 CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        # ...
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_CACHE_URL', 'redis://streamlab_redis:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
     }
 }
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
