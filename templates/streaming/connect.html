@@ -3,71 +3,39 @@
 <div class="container my-4">
   <h2>Connect {{ platform|title }} Account</h2>
 
-  {% if icon_url %}
-    <img src="{{ icon_url }}" alt="{{ platform|title }}" style="height:40px;">
-  {% endif %}
-
-  {% if doc_url %}
-  <div class="alert alert-info mt-3">
-    <strong>Need help retrieving your {{ platform|title }} stream key?</strong> 
-    <a href="{{ doc_url }}" target="_blank" title="Platform instructions">
-      Learn more here
-    </a>
-  </div>
-  {% endif %}
-
-  {% if platform == "instagram" %}
-  <div class="alert alert-warning my-3">
-    For every stream, add a new Instagram key. 
-    <a 
-      href="https://help.instagram.com/292478487812558" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      title="Instagram Live instructions"
-    >
-      Learn more
-    </a>
-  </div>
+  {# Optional platform icons or doc links #}
+  {% if platform == "youtube" %}
+    <div class="alert alert-info my-3">
+      If you prefer **OAuth** for YouTube, use our “Connect with Google” flow.<br>
+      <strong>Manual Entry:</strong> Retrieve your YouTube <em>RTMP URL & Stream Key</em> from YouTube Studio 
+      (YouTube Studio → “Go Live” → “Stream” tab).
+    </div>
+  {% elif platform == "facebook" %}
+    <div class="alert alert-info my-3">
+      If you prefer **OAuth** for Facebook, use the “Connect with Facebook” flow.<br>
+      <strong>Manual Entry:</strong> Retrieve the <em>RTMP URL & Stream Key</em> from the Facebook Live Producer page.
+    </div>
+  {% elif platform == "twitch" %}
+    <div class="alert alert-info my-3">
+      Retrieve your Twitch <em>Stream Key</em> from Creator Dashboard → Settings → Stream.
+    </div>
+  {% elif platform == "instagram" %}
+    <div class="alert alert-warning my-3">
+      Instagram typically requires ephemeral keys from 3rd-party solutions, as official usage changes often.
+    </div>
   {% elif platform == "telegram" %}
-  <div class="alert alert-warning my-3">
-    Telegram requires a special RTMP server and stream key.
-    <a 
-      href="https://core.telegram.org/live#rtmp" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      title="Telegram RTMP instructions"
-    >
-      Learn more
-    </a>
-  </div>
+    <div class="alert alert-warning my-3">
+      Telegram requires a special RTMP address & key from <a href="https://core.telegram.org/live#rtmp" target="_blank">Telegram docs</a>.
+    </div>
   {% elif platform == "tiktok" %}
-  <div class="alert alert-warning my-3">
-    Tiktok often requires a custom RTMP link and stream key from your live portal.
-    <a 
-      href="https://support.tiktok.com/en/using-tiktok/live/setting-up-live-streaming" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      title="Tiktok streaming instructions"
-    >
-      Learn more
-    </a>
-  </div>
+    <div class="alert alert-warning my-3">
+      Tiktok often requires a custom RTMP link and ephemeral key from your live portal.
+    </div>
   {% endif %}
 
   <p class="mt-3">
-    {% if platform == "telegram" %}
-      Provide your Telegram stream key. We'll use rtmps://dc4-1.rtmp.t.me:443/s as the RTMP URL automatically.
-    {% elif platform == "instagram" %}
-      Enter your generated Instagram stream key or tokens if you have them.
-    {% elif platform == "tiktok" %}
-      Enter your Tiktok RTMP URL & key if you have them.
-    {% elif platform == "youtube" %}
-      If you have a YouTube channel, retrieve your stream key from YouTube Studio after enabling Live.
-    {% elif platform == "facebook" %}
-      Connect your Facebook account or page, and retrieve the stream key from Creator Studio or the Live dashboard.
-    {% elif platform == "twitch" %}
-      Retrieve your Twitch stream key from your Dashboard under “Stream.”
-    {% endif %}
+    Please enter the <strong>RTMP URL</strong> and <strong>Stream Key</strong> below, 
+    or use our OAuth flow if available (YouTube/Facebook).
   </p>
 
   <div class="card p-3">
@@ -81,11 +49,10 @@
           name="display_name" 
           class="form-control"
           value="{{ social_account.display_name|default_if_none:'' }}"
-          placeholder="e.g. 'My Telegram Channel' or 'My Tiktok stream'"
+          placeholder="e.g. My YouTube Channel or My Twitch Stream"
         >
       </div>
 
-      {% if platform == "tiktok" %}
       <div class="mb-3">
         <label class="form-label">RTMP URL</label>
         <input 
@@ -93,12 +60,10 @@
           name="rtmp_url" 
           class="form-control"
           value="{{ social_account.rtmp_url|default_if_none:'' }}"
-          placeholder="e.g. rtmp://..."
+          placeholder="e.g. rtmp://a.rtmp.youtube.com/live2 or rtmp://live-api-s.facebook.com/rtmp/..."
         >
       </div>
-      {% endif %}
 
-      {% if platform in "telegram instagram tiktok" %}
       <div class="mb-3">
         <label class="form-label">Stream Key</label>
         <input 
@@ -106,22 +71,9 @@
           name="stream_key" 
           class="form-control"
           value="{{ social_account.stream_key|default_if_none:'' }}"
-          placeholder="Enter your stream key"
+          placeholder="Paste your stream key here"
         >
       </div>
-      {% endif %}
-
-      {% if platform in "youtube facebook twitch" %}
-      <div class="mb-3">
-        <label class="form-label">Auth Code (Optional)</label>
-        <input 
-          type="text" 
-          name="auth_code" 
-          class="form-control"
-          placeholder="Enter OAuth code if relevant"
-        >
-      </div>
-      {% endif %}
 
       <button type="submit" class="btn btn-primary">
         Connect {{ platform|title }}

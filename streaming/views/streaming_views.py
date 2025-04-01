@@ -91,13 +91,8 @@ async def offer(request):
 # ============================================================================
 # Optional: Manual Social Connect (If You Still Want a Fallback)
 # ============================================================================
-
 @login_required
 def connect_social(request, platform):
-    """
-    If you're using social_django exclusively, you may remove this entirely.
-    Otherwise, this endpoint can handle manual entry of RTMP info or tokens.
-    """
     valid_platforms = ["youtube", "facebook", "twitch", "instagram", "tiktok", "telegram"]
     if platform not in valid_platforms:
         messages.error(request, f"Invalid platform: {platform}.")
@@ -115,13 +110,19 @@ def connect_social(request, platform):
             account.rtmp_url = form.cleaned_data.get("rtmp_url")
             account.stream_key = form.cleaned_data.get("stream_key")
             account.save()
-            messages.success(request, f"{platform.capitalize()} account connected manually.")
-            return redirect("streaming:manage_channels")
+            # If the platform is YouTube and the stream key is now set, mark it as active.
+            if platform == "youtube" and account.stream_key:
+                messages.success(request, "YouTube account connected and active!")
+                return redirect("dashboard:index")
+            else:
+                messages.success(request, f"{platform.capitalize()} account connected successfully.")
+                return redirect("dashboard:index")
         else:
             messages.error(request, "Error connecting social account. Please correct the errors below.")
     else:
-        # If your user wants to manually enter tokens or stream keys:
-        form = SocialAccountForm(initial={"platform": platform})
+        # For YouTube, we do not require an auth code field, only the stream key (if available).
+        initial_data = {"platform": platform}
+        form = SocialAccountForm(initial=initial_data)
 
     return render(request, "streaming/connect.html", {"form": form, "platform": platform})
 
