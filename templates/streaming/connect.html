@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
 {% block content %}
 <div class="container my-4">
   <h2>Connect {{ platform|title }} Account</h2>
@@ -22,7 +21,7 @@
     </div>
   {% elif platform == "instagram" %}
     <div class="alert alert-warning my-3">
-      Instagram typically requires ephemeral keys from 3rd-party solutions as official usage is subject to frequent changes.
+      Instagram typically requires ephemeral keys from third-party solutions as official usage is subject to frequent changes.
     </div>
   {% elif platform == "telegram" %}
     <div class="alert alert-warning my-3">
