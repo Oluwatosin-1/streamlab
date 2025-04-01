@@ -192,8 +192,8 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.twitch.TwitchOAuth2',
     'social_core.backends.instagram.InstagramOAuth2',
     # Add additional backends if needed:
-    'social_core.backends.tiktok.TikTokOAuth2',       # if available, or your custom backend
-    'social_core.backends.telegram.TelegramOAuth2',   # if available
+    # 'social_core.backends.tiktok.TikTokOAuth2',       # if available, or your custom backend
+    # 'social_core.backends.telegram.TelegramOAuth2',   # if available
     'django.contrib.auth.backends.ModelBackend',
 )
 
