@@ -30,20 +30,40 @@ INSTALLED_APPS = [
     "users",  # User Authentication & Subscription
     "streaming",  # RTMP Streaming & Social Connection 
     "dashboard",  # User Dashboard Integration
-    "whitenoise",
-    "social_django",
+    "whitenoise", 
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    # Add the providers you need:
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.facebook",
+    "allauth.socialaccount.providers.twitch",
+    "allauth.socialaccount.providers.instagram",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # <-- Required for allauth
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+# Allauth settings (adjust as needed)
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_EMAIL_VERIFICATION = "optional" 
 
 ROOT_URLCONF = "streamlab.urls"
 
@@ -94,6 +114,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 # settings.py
 LOGIN_URL = "/users/login/"
 LOGIN_REDIRECT_URL = "/"  # or any URL you want users to be redirected after login
+SOCIALACCOUNT_ADAPTER = "streaming.allauth_adapter.CustomSocialAccountAdapter"
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -172,69 +193,12 @@ CSRF_TRUSTED_ORIGINS = [
     "https://stream.obairawoengineering.com",
     "https://www.stream.obairawoengineering.com",
 ]
-
-SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',
-    'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.auth_allowed',
-    'social_core.pipeline.social_auth.social_user',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-    'streamlab.social_pipeline.save_stream_info',  # Add your custom function
-) 
-# Social Auth backends – add all providers you plan to support.
-AUTHENTICATION_BACKENDS = (
-    'social_core.backends.google.GoogleOAuth2',       # YouTube uses Google OAuth2
-    'social_core.backends.facebook.FacebookOAuth2',
-    'social_core.backends.twitch.TwitchOAuth2',
-    'social_core.backends.instagram.InstagramOAuth2',
-    # Add additional backends if needed:
-    # 'social_core.backends.tiktok.TikTokOAuth2',       # if available, or your custom backend
-    # 'social_core.backends.telegram.TelegramOAuth2',   # if available
-    'django.contrib.auth.backends.ModelBackend',
-)
-
+ 
 # Social Auth configuration for each provider:
 # --- YouTube (via Google OAuth2) ---
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1003940566003-iipma78ri37njgi9c2h8gekp2m8rc9i4.apps.googleusercontent.com'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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' 
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/youtube.readonly',
-    'https://www.googleapis.com/auth/youtube.force-ssl',  # Needed for live streams
-]
-SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['refresh_token']
- 
-# --- Facebook ---
-SOCIAL_AUTH_FACEBOOK_KEY = '3999257497026619'
-SOCIAL_AUTH_FACEBOOK_SECRET = 'a3711cf22c091b41af61cd4bbc1f86e4'
-SOCIAL_AUTH_FACEBOOK_SCOPE = ['email', 'public_profile', 'pages_show_list', 'pages_manage_live', 'publish_video']
-SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
-    'fields': 'id,name,email'
-}
-
-# --- Twitch ---
-SOCIAL_AUTH_TWITCH_KEY = 'YOUR_TWITCH_CLIENT_ID'
-SOCIAL_AUTH_TWITCH_SECRET = 'YOUR_TWITCH_CLIENT_SECRET'
-SOCIAL_AUTH_TWITCH_SCOPE = ['user:read:email']  # Twitch's scopes for basic info; stream key might require manual entry
-
-# --- Instagram ---
-SOCIAL_AUTH_INSTAGRAM_KEY = 'YOUR_INSTAGRAM_CLIENT_ID'
-SOCIAL_AUTH_INSTAGRAM_SECRET = 'YOUR_INSTAGRAM_CLIENT_SECRET'
-# Instagram's API has changed and may require use of the Graph API for Live features.
-SOCIAL_AUTH_INSTAGRAM_SCOPE = ['user_profile']  # Adjust as needed
-
-# --- (Optional) TikTok & Telegram ---
-# Add configuration for any additional platforms as needed
- 
-# You can also specify redirect URIs if needed:
-LOGIN_REDIRECT_URL = '/'
-SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/new-user/'
+  
 
 # Django CACHES configuration
 CACHES = {

@@ -13,7 +13,7 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name="home.html"), name='home'),
     path("streaming/", include("streaming.urls", namespace="streaming")),
     path("logout/", LogoutView.as_view(next_page="login"), name="logout"),
-    path('social-auth/', include('social_django.urls', namespace='social')), 
+    path('accounts/', include('allauth.urls')),
 ]
 
 # Add static files support in development

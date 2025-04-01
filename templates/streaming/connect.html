@@ -1,19 +1,20 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 {% block content %}
 <div class="container my-4">
   <h2>Connect {{ platform|title }} Account</h2>
 
-  {# Optional platform icons or doc links #}
+  {# Platform-specific help text #}
   {% if platform == "youtube" %}
     <div class="alert alert-info my-3">
-      If you prefer **OAuth** for YouTube, use our “Connect with Google” flow.<br>
-      <strong>Manual Entry:</strong> Retrieve your YouTube <em>RTMP URL & Stream Key</em> from YouTube Studio 
+      If you prefer <strong>OAuth</strong> for YouTube, use our “Connect with Google” flow.<br>
+      <strong>Manual Entry:</strong> Retrieve your YouTube <em>RTMP URL &amp; Stream Key</em> from YouTube Studio 
       (YouTube Studio → “Go Live” → “Stream” tab).
     </div>
   {% elif platform == "facebook" %}
     <div class="alert alert-info my-3">
-      If you prefer **OAuth** for Facebook, use the “Connect with Facebook” flow.<br>
-      <strong>Manual Entry:</strong> Retrieve the <em>RTMP URL & Stream Key</em> from the Facebook Live Producer page.
+      If you prefer <strong>OAuth</strong> for Facebook, use the “Connect with Facebook” flow.<br>
+      <strong>Manual Entry:</strong> Retrieve the <em>RTMP URL &amp; Stream Key</em> from the Facebook Live Producer page.
     </div>
   {% elif platform == "twitch" %}
     <div class="alert alert-info my-3">
@@ -21,21 +22,20 @@
     </div>
   {% elif platform == "instagram" %}
     <div class="alert alert-warning my-3">
-      Instagram typically requires ephemeral keys from 3rd-party solutions, as official usage changes often.
+      Instagram typically requires ephemeral keys from 3rd-party solutions as official usage is subject to frequent changes.
     </div>
   {% elif platform == "telegram" %}
     <div class="alert alert-warning my-3">
-      Telegram requires a special RTMP address & key from <a href="https://core.telegram.org/live#rtmp" target="_blank">Telegram docs</a>.
+      Telegram requires a special RTMP address and key. Please check <a href="https://core.telegram.org/live#rtmp" target="_blank">Telegram docs</a>.
     </div>
   {% elif platform == "tiktok" %}
     <div class="alert alert-warning my-3">
-      Tiktok often requires a custom RTMP link and ephemeral key from your live portal.
+      TikTok often requires a custom RTMP link and ephemeral key from your live portal.
     </div>
   {% endif %}
 
   <p class="mt-3">
-    Please enter the <strong>RTMP URL</strong> and <strong>Stream Key</strong> below, 
-    or use our OAuth flow if available (YouTube/Facebook).
+    Please enter the <strong>RTMP URL</strong> and <strong>Stream Key</strong> below, or use our OAuth flow if available.
   </p>
 
   <div class="card p-3">
@@ -43,9 +43,10 @@
       {% csrf_token %}
       
       <div class="mb-3">
-        <label class="form-label">Display Name</label>
+        <label for="display_name" class="form-label">Display Name</label>
         <input 
           type="text" 
+          id="display_name" 
           name="display_name" 
           class="form-control"
           value="{{ social_account.display_name|default_if_none:'' }}"
@@ -54,9 +55,10 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">RTMP URL</label>
+        <label for="rtmp_url" class="form-label">RTMP URL</label>
         <input 
           type="text" 
+          id="rtmp_url" 
           name="rtmp_url" 
           class="form-control"
           value="{{ social_account.rtmp_url|default_if_none:'' }}"
@@ -65,9 +67,10 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Stream Key</label>
+        <label for="stream_key" class="form-label">Stream Key</label>
         <input 
           type="text" 
+          id="stream_key" 
           name="stream_key" 
           class="form-control"
           value="{{ social_account.stream_key|default_if_none:'' }}"
@@ -82,15 +85,15 @@
   </div>
 
   {% if social_account.access_token or social_account.stream_key %}
-  <div class="alert alert-info mt-4">
-    <strong>{{ platform|title }} is currently connected!</strong>
-    {% if social_account.rtmp_url %}
-      <p>RTMP URL: {{ social_account.rtmp_url }}</p>
-    {% endif %}
-    {% if social_account.stream_key %}
-      <p>Stream Key: {{ social_account.stream_key }}</p>
-    {% endif %}
-  </div>
+    <div class="alert alert-info mt-4">
+      <strong>{{ platform|title }} is currently connected!</strong>
+      {% if social_account.rtmp_url %}
+        <p>RTMP URL: {{ social_account.rtmp_url }}</p>
+      {% endif %}
+      {% if social_account.stream_key %}
+        <p>Stream Key: {{ social_account.stream_key }}</p>
+      {% endif %}
+    </div>
   {% endif %}
 </div>
 {% endblock %}
