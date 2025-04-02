@@ -383,14 +383,11 @@
       liveStream.getTracks().forEach(track => pc.addTrack(track, liveStream));
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      // Include stream_key in the URL as a GET parameter
+      // Send the offer to the Django endpoint (including streamKey in URL)
       const response = await fetch(`/streaming/offer/?stream_key=${encodeURIComponent(streamKey)}`, {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          'sdp': pc.localDescription.sdp,
-          'type': pc.localDescription.type
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
       });
       if (!response.ok) throw new Error("Failed to send offer to server");
       const answerData = await response.json();
@@ -401,26 +398,32 @@
       alert("Failed to push live stream to server.");
     }
   }
-  document.getElementById("goLiveBtn").addEventListener("click", async (e) => {
-    e.preventDefault();
+
+  // When "Go Live" is clicked, push the stream to the server via WebRTC, then trigger the backend
+document.getElementById("goLiveBtn").addEventListener("click", function(event) {
+  event.preventDefault();
+  // First, push the stream using WebRTC:
+  pushLiveStreamToServer();
+  // Then, trigger the backend live session via AJAX:
+  (async () => {
     try {
-        // POST to the go_live endpoint (include config_id from a data attribute or context)
-        const response = await fetch(`/streaming/go_live/{{ config.id }}/`, {
-            method: "POST",
-            headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json" },
-        });
-        const data = await response.json();
-        if (data.status === "ok") {
-            alert("Live stream started successfully! Session: " + data.session_uuid);
-            // Optionally update the UI to indicate that the stream is live.
-        } else {
-            alert("Failed to start live stream: " + (data.error || "Unknown error"));
-        }
+      const response = await fetch(`/streaming/go_live/{{ config.id }}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (data.status === "ok") {
+        alert("Live stream started successfully! Session: " + data.session_uuid);
+      } else {
+        alert("Failed to start live stream: " + (data.error || "Unknown error"));
+      }
     } catch (error) {
-        console.error("Error starting live stream:", error);
-        alert("Error starting live stream.");
+      console.error("Error starting live stream:", error);
+      alert("Error starting live stream.");
     }
+  })();
 });
+
 
   // ========== Recording the live feed locally ==========
   function startRecording() {
