@@ -1,7 +1,8 @@
 import json
 import subprocess
 import logging
-from datetime import datetime, timezone
+from django.utils import timezone
+from datetime import timezone
 from streaming.srs_utils import get_stream_stats
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
@@ -190,13 +191,12 @@ def start_streaming_session(request, config_id):
     # Optionally trigger a Celery task to do something externally
     return redirect("streaming:session_detail", session_id=session.id)
 
-@login_required
 def end_streaming_session(request, session_id):
     session = get_object_or_404(StreamingSession, id=session_id, configuration__user=request.user)
     if session.status != "live":
         return redirect("streaming:session_detail", session_id=session.id)
     session.status = "ended"
-    session.session_end = timezone.now()
+    session.session_end = timezone.now()  # Use Django's timezone.now()
     session.save()
     return redirect("streaming:session_detail", session_id=session.id)
 

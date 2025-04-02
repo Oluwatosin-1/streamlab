@@ -401,6 +401,26 @@
       alert("Failed to push live stream to server.");
     }
   }
+  document.getElementById("goLiveBtn").addEventListener("click", async (e) => {
+    e.preventDefault();
+    try {
+        // POST to the go_live endpoint (include config_id from a data attribute or context)
+        const response = await fetch(`/streaming/go_live/{{ config.id }}/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        if (data.status === "ok") {
+            alert("Live stream started successfully! Session: " + data.session_uuid);
+            // Optionally update the UI to indicate that the stream is live.
+        } else {
+            alert("Failed to start live stream: " + (data.error || "Unknown error"));
+        }
+    } catch (error) {
+        console.error("Error starting live stream:", error);
+        alert("Error starting live stream.");
+    }
+});
 
   // ========== Recording the live feed locally ==========
   function startRecording() {
