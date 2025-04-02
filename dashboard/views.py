@@ -8,11 +8,13 @@ from streaming.srs_utils import get_stream_stats
 
 @login_required
 def dashboard(request):
-    # "All" tab: display all streaming configurations & sessions
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
     streaming_configs = StreamingConfiguration.objects.filter(user=request.user)
     streaming_sessions = StreamingSession.objects.filter(configuration__user=request.user).order_by('-session_start')
   
+    # Check if the user has at least one active connected social account.
+    social_connected = request.user.streaming_platform_accounts.filter(is_active=True).exists()
+
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -24,6 +26,7 @@ def dashboard(request):
         'dashboard_settings': dashboard_settings,
         'streaming_configs': streaming_configs,
         'streaming_sessions': streaming_sessions,
+        'social_connected': social_connected,
         'metrics': metrics, 
         'active_tab': 'all',
     }

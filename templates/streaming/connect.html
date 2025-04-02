@@ -3,12 +3,18 @@
 <div class="container my-4">
   <h2>Connect {{ platform|title }} Account</h2>
 
-  {# Platform-specific help text #}
+  {# Display messages (success, error) via Django's messaging framework #}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {# Platform-specific instructions #}
   {% if platform == "youtube" %}
     <div class="alert alert-info my-3">
       If you prefer <strong>OAuth</strong> for YouTube, use our “Connect with Google” flow.<br>
-      <strong>Manual Entry:</strong> Retrieve your YouTube <em>RTMP URL &amp; Stream Key</em> from YouTube Studio 
-      (YouTube Studio → “Go Live” → “Stream” tab).
+      <strong>Manual Entry:</strong> Retrieve your YouTube <em>RTMP URL &amp; Stream Key</em> from YouTube Studio.
     </div>
   {% elif platform == "facebook" %}
     <div class="alert alert-info my-3">
@@ -17,11 +23,11 @@
     </div>
   {% elif platform == "twitch" %}
     <div class="alert alert-info my-3">
-      Retrieve your Twitch <em>Stream Key</em> from Creator Dashboard → Settings → Stream.
+      Retrieve your Twitch <em>Stream Key</em> from the Creator Dashboard.
     </div>
   {% elif platform == "instagram" %}
     <div class="alert alert-warning my-3">
-      Instagram typically requires ephemeral keys from third-party solutions as official usage is subject to frequent changes.
+      Instagram typically requires ephemeral keys from third-party solutions.
     </div>
   {% elif platform == "telegram" %}
     <div class="alert alert-warning my-3">
@@ -41,6 +47,9 @@
     <form method="POST">
       {% csrf_token %}
       
+      {# Hidden field for platform so that its value is always provided #}
+      <input type="hidden" name="platform" value="{{ platform }}">
+
       <div class="mb-3">
         <label for="display_name" class="form-label">Display Name</label>
         <input 
@@ -83,16 +92,19 @@
     </form>
   </div>
 
-  {% if social_account.access_token or social_account.stream_key %}
-    <div class="alert alert-info mt-4">
-      <strong>{{ platform|title }} is currently connected!</strong>
-      {% if social_account.rtmp_url %}
-        <p>RTMP URL: {{ social_account.rtmp_url }}</p>
-      {% endif %}
-      {% if social_account.stream_key %}
-        <p>Stream Key: {{ social_account.stream_key }}</p>
-      {% endif %}
-    </div>
+  {# Nested conditions to check if social_account exists and has tokens #}
+  {% if social_account %}
+    {% if social_account.access_token or social_account.stream_key %}
+      <div class="alert alert-info mt-4">
+        <strong>{{ platform|title }} is currently connected!</strong>
+        {% if social_account.rtmp_url %}
+          <p>RTMP URL: {{ social_account.rtmp_url }}</p>
+        {% endif %}
+        {% if social_account.stream_key %}
+          <p>Stream Key: {{ social_account.stream_key }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
   {% endif %}
 </div>
 {% endblock %}

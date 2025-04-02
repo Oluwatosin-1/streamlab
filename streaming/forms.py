@@ -2,6 +2,15 @@
 from django import forms
 from .models import ChatMessage, StreamingConfiguration, ScheduledVideo, StreamingPlatformAccount
 
+class SocialAccountForm(forms.ModelForm):
+    class Meta:
+        model = StreamingPlatformAccount
+        # Only include the fields the user should manually input.
+        fields = ['platform', 'display_name', 'rtmp_url', 'stream_key']
+        widgets = {
+            # Hide the platform field if you want to pre-set it from the URL/view.
+            'platform': forms.HiddenInput(),
+        }
 class StreamingConfigurationForm(forms.ModelForm):
     class Meta:
         model = StreamingConfiguration
@@ -26,12 +35,6 @@ class RecordingForm(forms.Form):
         widget=forms.Textarea, required=False,
         help_text="Any extra notes for this recording."
     ) 
-class SocialAccountForm(forms.ModelForm):
-    class Meta:
-        model = StreamingPlatformAccount
-        fields = ['platform', 'access_token', 'refresh_token', 'rtmp_url', 'stream_key', 'display_name']
-
-
 # A simple ModelForm for posting chat messages.
 class ChatMessageForm(forms.ModelForm):
     class Meta:

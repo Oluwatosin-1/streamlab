@@ -38,6 +38,9 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # WebRTC Offer Endpoint (Browser → Django → FFmpeg → SRS)
 # ============================================================================
+@property
+def connection_status(self):
+    return "Connected" if self.access_token or (self.rtmp_url and self.stream_key) else "Pending"
 
 pcs = set()
 
@@ -91,41 +94,47 @@ async def offer(request):
 # ============================================================================
 # Optional: Manual Social Connect (If You Still Want a Fallback)
 # ============================================================================
+
 @login_required
 def connect_social(request, platform):
     valid_platforms = ["youtube", "facebook", "twitch", "instagram", "tiktok", "telegram"]
     if platform not in valid_platforms:
         messages.error(request, f"Invalid platform: {platform}.")
         return redirect("dashboard:index")
-
+    
     if request.method == "POST":
         form = SocialAccountForm(request.POST)
         if form.is_valid():
-            account, _ = StreamingPlatformAccount.objects.get_or_create(
-                user=request.user, platform=platform
+            account, created = StreamingPlatformAccount.objects.get_or_create(
+                user=request.user,
+                platform=platform,
+                defaults={'account_username': request.user.username}
             )
             account.display_name = form.cleaned_data.get("display_name")
-            account.access_token = form.cleaned_data.get("access_token")
-            account.refresh_token = form.cleaned_data.get("refresh_token")
+            account.account_username = form.cleaned_data.get("account_username") or request.user.username
             account.rtmp_url = form.cleaned_data.get("rtmp_url")
             account.stream_key = form.cleaned_data.get("stream_key")
-            account.save()
-            # If the platform is YouTube and the stream key is now set, mark it as active.
-            if platform == "youtube" and account.stream_key:
-                messages.success(request, "YouTube account connected and active!")
-                return redirect("dashboard:index")
+            # Mark account active if both RTMP URL and stream key are provided.
+            if account.rtmp_url and account.stream_key:
+                account.is_active = True
             else:
-                messages.success(request, f"{platform.capitalize()} account connected successfully.")
-                return redirect("dashboard:index")
+                account.is_active = False
+            account.save()
+            logger.info("Connected %s account for user %s successfully.", platform, request.user.username)
+            messages.success(request, f"{platform.capitalize()} account connected successfully!")
+            return redirect("streaming:manage_channels")
         else:
             messages.error(request, "Error connecting social account. Please correct the errors below.")
     else:
-        # For YouTube, we do not require an auth code field, only the stream key (if available).
-        initial_data = {"platform": platform}
-        form = SocialAccountForm(initial=initial_data)
+        form = SocialAccountForm(initial={"platform": platform})
+    
+    try:
+        social_account = request.user.streaming_platform_accounts.get(platform=platform)
+    except StreamingPlatformAccount.DoesNotExist:
+        social_account = None
 
-    return render(request, "streaming/connect.html", {"form": form, "platform": platform})
-
+    context = {"form": form, "platform": platform, "social_account": social_account}
+    return render(request, "streaming/connect.html", context)
 
 # ============================================================================
 # Streaming Configuration & Session Endpoints
@@ -294,7 +303,7 @@ def analytics(request):
         'dashboard_settings': dashboard_settings,
         'some_analytics_data': {}  # Replace with actual analytics data
     }
-    return render(request, "dashboard/analytics.html", context)
+    return render(request, "dashboard/analytics.html", context) 
 
 @login_required
 def manage_channels(request):
@@ -306,13 +315,15 @@ def manage_channels(request):
         "tiktok": "https://cdn-icons-png.flaticon.com/512/3046/3046120.png",
         "telegram": "https://cdn-icons-png.flaticon.com/512/2111/2111646.png",
     }
-    user_channels = SocialAccount.objects.filter(user=request.user)
+    user_channels = StreamingPlatformAccount.objects.filter(user=request.user)
     user_channels_info = []
-    for channel in user_channels:
-        icon_url = platform_icons.get(channel.platform, "")
+    for account in user_channels:
+        icon_url = platform_icons.get(account.platform, "")
+        status = "Active" if (account.rtmp_url and account.stream_key) else "Pending"
         user_channels_info.append({
-            "channel": channel,
+            "channel": account,
             "icon_url": icon_url,
+            "status": status,
         })
 
     if request.method == "POST":
@@ -320,16 +331,18 @@ def manage_channels(request):
         channel_id = request.POST.get("channel_id")
         if action == "remove" and channel_id:
             try:
-                channel_to_delete = SocialAccount.objects.get(id=channel_id, user=request.user)
-                channel_to_delete.delete()
+                account_to_delete = StreamingPlatformAccount.objects.get(id=channel_id, user=request.user)
+                account_to_delete.delete()
                 messages.success(request, "Channel removed successfully.")
-            except SocialAccount.DoesNotExist:
+            except StreamingPlatformAccount.DoesNotExist:
                 messages.error(request, "Channel not found or not owned by user.")
             return redirect("streaming:manage_channels")
 
-    context = {"user_channels_info": user_channels_info}
+    context = {
+        "user_channels_info": user_channels_info,
+        "platform_icons": platform_icons,
+    }
     return render(request, "streaming/manage_channels.html", context)
-
 
 @login_required
 def srs_console(request):
