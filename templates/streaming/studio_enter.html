@@ -170,14 +170,15 @@
   <!-- Footer Toolbar -->
   <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
     {% if not record_mode and social_accounts|length > 0 and config %}
-      <form method="post" action="{% url 'streaming:go_live' %}">
+      <form method="post" action="{% url 'streaming:go_live' config_id=config.id %}">
         {% csrf_token %}
         <button class="btn btn-success" id="goLiveBtn">Go Live</button>
       </form>
-      <form method="post" action="{% url 'streaming:stop_live' %}">
+  
+      <form method="post" action="{% url 'streaming:stop_live' session_id=session.id %}">
         {% csrf_token %}
         <button class="btn btn-danger" id="stopLiveFeedBtn">Stop Live</button>
-      </form>
+      </form>          
     {% endif %}
     <button class="btn btn-outline-info" id="startRecordBtn">Start Recording</button>
     <button class="btn btn-outline-warning" id="stopRecordBtn" disabled>Stop Recording</button>

@@ -223,7 +223,6 @@ def go_live(request, config_id, session_id=None):
     messages.info(request, f"Initiating live stream for session: {session.session_uuid}")
     return redirect(reverse("streaming:session_detail", kwargs={"session_id": session.id}))
 
-
 # ============================================================================
 # Chat Endpoints
 # ============================================================================
@@ -381,6 +380,7 @@ def studio_enter(request):
         "record_mode": 'record' in request.GET,  # Use a GET param to toggle record mode.
         "session": session,
     }
+    
     return render(request, "streaming/studio_enter.html", context)
 
 

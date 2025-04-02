@@ -75,8 +75,9 @@ urlpatterns = [
     # path("session/<int:session_id>/stop_live/", stop_live, name="stop_live"),
     # path("session/<int:session_id>/stats/", stream_stats, name="stream_stats"),
     path('check_stream_status/<str:stream_key>/', check_stream_status, name="check_stream_status"),
-    path('go-live/<int:config_id>/', go_live, name='go_live'), 
-
+    path('go-live/<int:config_id>/', go_live, name='go_live'),
+    path('stop-live/<int:session_id>/', end_streaming_session, name='stop_live'),
+    
     path('api/srs/on_publish/', srs_on_publish, name='srs_on_publish'),
     path('api/srs/on_unpublish/', srs_on_unpublish, name='srs_on_unpublish'),
 
