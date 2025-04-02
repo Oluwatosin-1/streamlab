@@ -8,13 +8,26 @@ from streaming.srs_utils import get_stream_stats
 
 @login_required
 def dashboard(request):
+    # Fetch or create dashboard settings (if needed)
     dashboard_settings, _ = DashboardSettings.objects.get_or_create(user=request.user)
+    
+    # Retrieve all streaming configurations for the user
     streaming_configs = StreamingConfiguration.objects.filter(user=request.user)
+    
+    # Check for an active configuration
+    active_config = streaming_configs.filter(is_active=True).first()
+    
+    # Check if the user has at least one connected social account marked as active.
+    # (Assuming you set is_active=True when both RTMP URL and stream key are provided.)
+    active_social_count = request.user.streaming_platform_accounts.filter(is_active=True).count()
+    
+    # Compute the full RTMP URL if we have an active config and at least one connected social account.
+    studio_url = None
+    if active_config and active_social_count:
+        studio_url = active_config.get_full_rtmp_url()  # This calls the method
+    
+    # Also retrieve streaming sessions, metrics, etc. for the dashboard
     streaming_sessions = StreamingSession.objects.filter(configuration__user=request.user).order_by('-session_start')
-  
-    # Check if the user has at least one active connected social account.
-    social_connected = request.user.streaming_platform_accounts.filter(is_active=True).exists()
-
     metrics = {
         'views': '+24K',
         'rated_app': '+55K',
@@ -25,8 +38,9 @@ def dashboard(request):
     context = {
         'dashboard_settings': dashboard_settings,
         'streaming_configs': streaming_configs,
+        'active_config': active_config,
+        'studio_url': studio_url,  # Pass the computed RTMP URL
         'streaming_sessions': streaming_sessions,
-        'social_connected': social_connected,
         'metrics': metrics, 
         'active_tab': 'all',
     }
