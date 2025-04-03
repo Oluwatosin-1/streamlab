@@ -1,8 +1,6 @@
 from django.urls import path
 from django.views.generic import TemplateView
-  
-from dashboard.views import check_stream_status 
-
+   
 from streaming.views.srs_hooks import srs_on_publish, srs_on_unpublish
 from streaming.views.streaming_views import (
     StreamingConfigurationListView,
@@ -10,6 +8,7 @@ from streaming.views.streaming_views import (
     StreamingConfigurationUpdateView,
     StreamingConfigurationDeleteView,
     StreamingConfigurationDetailView,
+    check_stream_status,
     connect_social, 
     fetch_chat_messages,
     go_live,
@@ -22,7 +21,8 @@ from streaming.views.streaming_views import (
     end_streaming_session,
     StreamingSessionDetailView,
     studio_enter,
-    upload_recorded, 
+    upload_recorded,
+    validate_social_accounts, 
 )
 from streaming.views.scheduling_views import (
     ScheduledVideoListView,
@@ -68,7 +68,8 @@ urlpatterns = [
     path("session/<int:session_id>/chat/send/", send_chat_message, name="send_chat_message"),
     path('fetch_chat_messages/<uuid:session_id>/', fetch_chat_messages, name='fetch_chat_messages'),
     # path("session/<int:session_id>/chat/fetch/", fetch_chat_messages, name="fetch_chat_messages"),
-    
+    path('validate_social_accounts/', validate_social_accounts, name='validate_social_accounts'),
+
     # Recording and additional live control endpoints
     path("record/local/", local_record_session, name="local_record_session"),
     path("record/upload/", upload_recorded, name="upload_recorded"), 

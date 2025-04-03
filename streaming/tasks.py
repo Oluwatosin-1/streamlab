@@ -1,146 +1,280 @@
 import subprocess
 import logging
-from celery import shared_task, group
+from celery import shared_task, group, chain
 from django.db import transaction
 from django.utils import timezone
-from .models import StreamingSession, StreamingPlatformAccount
-from streaming.models import ScheduledVideo  # if needed
+from django.conf import settings
+import requests
+
+from .models import StreamingSession, StreamingPlatformAccount, ScheduledVideo
+from .srs_utils import start_streaming_via_srs, stop_streaming_via_srs, get_stream_stats
 
 logger = logging.getLogger(__name__)
 
-@shared_task
-def relay_to_single_social(session_id, platform_rtmp, source_rtmp):
+class StreamingError(Exception):
+    """Custom exception for streaming-related errors"""
+    pass
+
+@shared_task(bind=True, max_retries=3)
+def relay_to_single_social(self, session_id, platform_rtmp, source_rtmp, account_id=None):
     """
-    Relay the central RTMP stream (from source_rtmp) to one external social endpoint.
+    Relay the central RTMP stream to one external social endpoint with robust error handling
+    """
+    try:
+        with transaction.atomic():
+            # Get session and validate
+            session = StreamingSession.objects.select_for_update().get(id=session_id)
+            account = None
+            
+            if account_id:
+                account = StreamingPlatformAccount.objects.select_for_update().get(
+                    id=account_id,
+                    user=session.configuration.user
+                )
+
+            # Build the FFmpeg command
+            command = [
+                'ffmpeg',
+                '-loglevel', 'info',
+                '-re',  # Read input at native frame rate
+                '-i', source_rtmp,
+                '-c:v', 'copy',  # Stream copy (no re-encoding)
+                '-c:a', 'copy',
+                '-f', 'flv',
+                '-flvflags', 'no_duration_filesize',
+                platform_rtmp
+            ]
+
+            logger.info(
+                "Starting relay for session %s to %s (Account: %s)",
+                session_id, platform_rtmp, account_id or "unknown"
+            )
+
+            # Start the process
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+
+            # Update status
+            if account:
+                account.relay_status = "active"
+                account.relay_last_updated = timezone.now()
+                account.save()
+
+            # Wait for process to complete (with timeout)
+            try:
+                stdout, stderr = process.communicate(timeout=10)
+                if process.returncode != 0:
+                    raise StreamingError(f"FFmpeg failed with code {process.returncode}: {stderr}")
+            except subprocess.TimeoutExpired:
+                # If we get here, the process is running successfully
+                logger.info("Relay to %s established successfully", platform_rtmp)
+                return {
+                    "status": "success",
+                    "platform_rtmp": platform_rtmp,
+                    "process_pid": process.pid
+                }
+
+    except StreamingSession.DoesNotExist as e:
+        logger.error("Session %s not found: %s", session_id, str(e))
+        raise self.retry(exc=e, countdown=60)
+    except StreamingPlatformAccount.DoesNotExist as e:
+        logger.error("Account %s not found: %s", account_id, str(e))
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error("Error in relay_to_single_social: %s", str(e))
+        
+        if account:
+            account.relay_status = "failed"
+            account.relay_log = str(e)
+            account.relay_last_updated = timezone.now()
+            account.save()
+
+        raise self.retry(exc=e, countdown=60)
+
+@shared_task(bind=True, max_retries=3)
+def relay_to_social_task(self, session_id, source_rtmp):
+    """
+    Main task to relay stream to all connected social platforms with comprehensive error handling
+    """
+    try:
+        with transaction.atomic():
+            # Get session with lock to prevent race conditions
+            session = StreamingSession.objects.select_for_update().get(id=session_id)
+            
+            # Get all active social accounts with valid RTMP settings
+            social_accounts = StreamingPlatformAccount.objects.filter(
+                user=session.configuration.user,
+                is_active=True,
+                rtmp_url__isnull=False,
+                stream_key__isnull=False
+            )
+            
+            if not social_accounts.exists():
+                logger.warning("No valid social accounts for session %s", session_id)
+                session.status = "failed"
+                session.save()
+                raise StreamingError("No active social accounts with valid RTMP settings")
+
+            # Prepare tasks for each platform
+            tasks = []
+            for account in social_accounts:
+                endpoint = f"{account.rtmp_url.rstrip('/')}/{account.stream_key}"
+                tasks.append(
+                    relay_to_single_social.s(
+                        session_id,
+                        endpoint,
+                        source_rtmp,
+                        account.id
+                    ).set(
+                        queue=f'relay_{account.platform}'
+                    )
+                )
+
+            # Execute tasks in parallel
+            job = group(tasks)
+            results = job.apply_async().get(disable_sync_subtasks=False)
+
+            # Check results
+            failed_relays = [r for r in results if r.get('status') != 'success']
+            
+            if failed_relays:
+                session.status = "partial"
+                session.save()
+                logger.error("Some relays failed: %s", failed_relays)
+                return {
+                    "status": "partial",
+                    "success_count": len(results) - len(failed_relays),
+                    "failed_count": len(failed_relays),
+                    "failed_relays": failed_relays
+                }
+            else:
+                session.status = "live"
+                session.save()
+                logger.info("All %d relays started successfully", len(results))
+                return {
+                    "status": "success",
+                    "relay_count": len(results)
+                }
+
+    except StreamingSession.DoesNotExist as e:
+        logger.error("Session %s not found: %s", session_id, str(e))
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error("Error in relay_to_social_task: %s", str(e))
+        session.status = "failed"
+        session.save()
+        raise self.retry(exc=e, countdown=60)
+
+@shared_task(bind=True, max_retries=3)
+def publish_scheduled_video_task(self, scheduled_id):
+    """
+    Task to start streaming for a scheduled video with SRS API integration
+    """
+    try:
+        with transaction.atomic():
+            scheduled = ScheduledVideo.objects.select_for_update().get(id=scheduled_id)
+            
+            # Start stream via SRS API
+            srs_response = start_streaming_via_srs(
+                app="live",
+                stream_name=scheduled.stream_key
+            )
+            
+            if not srs_response or srs_response.get('code') != 0:
+                raise StreamingError("Failed to start SRS stream")
+            
+            # Start social relays
+            source_rtmp = f"rtmp://{settings.SRS_SERVER_HOST}/live/{scheduled.stream_key}"
+            relay_task = relay_to_social_task.s(
+                scheduled.session.id,
+                source_rtmp
+            )
+            
+            # Update scheduled video
+            scheduled.scheduled_time = timezone.now()
+            scheduled.is_published = True
+            scheduled.save()
+            
+            return {
+                "status": "success",
+                "srs_response": srs_response,
+                "relay_task_id": relay_task.id
+            }
+
+    except ScheduledVideo.DoesNotExist as e:
+        logger.error("Scheduled video %s not found: %s", scheduled_id, str(e))
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error("Error in publish_scheduled_video_task: %s", str(e))
+        raise self.retry(exc=e, countdown=60)
+
+@shared_task(bind=True, max_retries=3)
+def unpublish_scheduled_video_task(self, scheduled_id):
+    """
+    Task to stop streaming for a scheduled video with SRS API integration
+    """
+    try:
+        with transaction.atomic():
+            scheduled = ScheduledVideo.objects.select_for_update().get(id=scheduled_id)
+            
+            # Stop stream via SRS API
+            srs_response = stop_streaming_via_srs(
+                app="live",
+                stream_name=scheduled.stream_key
+            )
+            
+            # Update scheduled video
+            scheduled.is_published = False
+            scheduled.save()
+            
+            return {
+                "status": "success",
+                "srs_response": srs_response
+            }
+
+    except ScheduledVideo.DoesNotExist as e:
+        logger.error("Scheduled video %s not found: %s", scheduled_id, str(e))
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error("Error in unpublish_scheduled_video_task: %s", str(e))
+        raise self.retry(exc=e, countdown=60)
+
+@shared_task
+def monitor_stream_health(session_id):
+    """
+    Periodic task to monitor stream health and restart failed relays
     """
     try:
         session = StreamingSession.objects.get(id=session_id)
-    except StreamingSession.DoesNotExist:
-        msg = f"Session {session_id} not found."
-        logger.error(msg)
-        return {"platform_rtmp": platform_rtmp, "status": "error", "message": msg}
+        if session.status not in ["live", "partial"]:
+            return  # Only monitor active sessions
 
-    # Optionally look up the account for additional logging (adjust lookup as needed).
-    account = StreamingPlatformAccount.objects.filter(
-        user=session.configuration.user,
-        rtmp_url__icontains=platform_rtmp.split("/")[0]  # simplistic check; adjust as needed
-    ).first()
+        # Check SRS stream status
+        stats = get_stream_stats("live", session.configuration.stream_key)
+        if not stats or stats.get('code') != 0:
+            logger.warning("Stream %s not found in SRS", session.configuration.stream_key)
+            return
 
-    # Build the source URL using the provided source_rtmp and append the stream key.
-    # For example, if source_rtmp is "rtmp://SRS_HOST/live" and the stream key is stored in the configuration:
-    source_url = f"{source_rtmp.rstrip('/')}/{session.configuration.stream_key}"
+        # Check and restart failed relays
+        failed_accounts = StreamingPlatformAccount.objects.filter(
+            user=session.configuration.user,
+            relay_status="failed"
+        )
+        
+        if failed_accounts.exists():
+            logger.info("Found %d failed relays, attempting to restart", failed_accounts.count())
+            source_rtmp = session.configuration.get_full_rtmp_url()
+            for account in failed_accounts:
+                relay_to_single_social.delay(
+                    session_id,
+                    f"{account.rtmp_url.rstrip('/')}/{account.stream_key}",
+                    source_rtmp,
+                    account.id
+                )
 
-    command = [
-        "ffmpeg",
-        "-re",  # Read input at native frame rate.
-        "-i", source_url,
-        "-c:v", "copy",
-        "-c:a", "copy",
-        "-f", "flv",
-        platform_rtmp,  # The external RTMP endpoint.
-    ]
-    
-    logger.info("Executing FFmpeg command for endpoint %s: %s", platform_rtmp, " ".join(command))
-    try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-        log_output = result.stdout + "\n" + result.stderr
-        status = "success"
-    except subprocess.CalledProcessError as e:
-        log_output = (e.stdout or "") + "\n" + (e.stderr or "") if (e.stdout or e.stderr) else str(e)
-        status = "error"
-        session.status = "error"
-        session.save()
-        logger.exception("FFmpeg relay command failed for endpoint %s: %s", platform_rtmp, e)
-
-    if account:
-        account.relay_status = status
-        account.relay_log = log_output
-        account.relay_last_updated = timezone.now()
-        account.save()
-
-    logger.info("Relay %s for endpoint %s", status, platform_rtmp)
-    return {"platform_rtmp": platform_rtmp, "status": status, "log": log_output}
-
-
-@shared_task
-def relay_to_social_task(session_id, source_rtmp):
-    """
-    Relay the central RTMP stream to all connected social platforms.
-    Accepts two arguments: session_id and the source RTMP URL (e.g. from config.get_full_rtmp_url()).
-    """
-    try:
-        session = StreamingSession.objects.get(id=session_id)
-    except StreamingSession.DoesNotExist:
-        logger.error("relay_to_social_task: Session %s not found", session_id)
-        return "Session not found."
-    
-    social_accounts = StreamingPlatformAccount.objects.filter(user=session.configuration.user)
-    endpoints = []
-    for account in social_accounts:
-        if account.rtmp_url and account.stream_key:
-            endpoint = f"{account.rtmp_url.rstrip('/')}/{account.stream_key}"
-            endpoints.append(endpoint)
-    
-    if not endpoints:
-        msg = "No social accounts with valid RTMP settings found."
-        logger.warning(msg)
-        return msg
-
-    # Create a Celery group to relay to each endpoint concurrently.
-    tasks = group(relay_to_single_social.s(session.id, endpoint, source_rtmp) for endpoint in endpoints)
-    results = tasks.apply_async().get()  # Wait for all tasks to finish.
-    
-    errors = [r for r in results if r.get("status") != "success"]
-    if errors:
-        session.status = "error"
-        session.save()
-        logger.error("Some relays failed: %s", errors)
-        return {"status": "error", "errors": errors}
-    else:
-        logger.info("All relays succeeded for session %s", session.session_uuid)
-        return {"status": "success", "results": results}
-
-@shared_task
-def publish_scheduled_video_task(scheduled_id):
-    """
-    Task to start streaming for a scheduled video.
-    This might call SRS's API to start the stream.
-    """
-    try:
-        scheduled = ScheduledVideo.objects.get(id=scheduled_id)
-    except ScheduledVideo.DoesNotExist:
-        logger.error("publish_scheduled_video_task: Scheduled video %s not found", scheduled_id)
-        return "Scheduled video not found."
-    
-    # Here you would trigger your SRS API to start streaming.
-    # For example:
-    # response = start_streaming_via_srs(app="live", stream_name=scheduled.stream_key)
-    # For this example, we assume the stream starts successfully.
-    logger.info("Publishing scheduled video %s for user %s", scheduled.id, scheduled.user)
-    
-    # Optionally, update additional fields (e.g., stream_start time).
-    scheduled.scheduled_time = timezone.now()
-    scheduled.save()
-    return "Published successfully."
-
-@shared_task
-def unpublish_scheduled_video_task(scheduled_id):
-    """
-    Task to stop streaming for a scheduled video.
-    This might call SRS's API to stop the stream.
-    """
-    try:
-        scheduled = ScheduledVideo.objects.get(id=scheduled_id)
-    except ScheduledVideo.DoesNotExist:
-        logger.error("unpublish_scheduled_video_task: Scheduled video %s not found", scheduled_id)
-        return "Scheduled video not found."
-    
-    # Here you would trigger your SRS API to stop streaming.
-    # For example:
-    # response = stop_streaming_via_srs(app="live", stream_name=scheduled.stream_key)
-    logger.info("Unpublishing scheduled video %s for user %s", scheduled.id, scheduled.user)
-    
-    # Mark the video as unpublished (draft).
-    scheduled.is_published = False
-    scheduled.save()
-    return "Unpublished successfully."
+    except Exception as e:
+        logger.error("Error in monitor_stream_health: %s", str(e))

@@ -53,6 +53,27 @@
           </div>
         </div>
       </div>
+      
+      <!-- Stream Configuration Panel -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0">Stream Configuration</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="streamTitleInput" class="form-label">Stream Title</label>
+            <input type="text" class="form-control" id="streamTitleInput" value="My Live Stream">
+          </div>
+          <div class="mb-3">
+            <label for="streamDescriptionInput" class="form-label">Description</label>
+            <textarea class="form-control" id="streamDescriptionInput" rows="2"></textarea>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="enableChatSwitch" checked>
+            <label class="form-check-label" for="enableChatSwitch">Enable Live Chat</label>
+          </div>
+        </div>
+      </div>
     </div>
     
     <!-- Right Column: Live Feed, Participants & Chat -->
@@ -61,7 +82,10 @@
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Live Feed</h5>
-          <span class="badge bg-success" id="live-status">Initializing...</span>
+          <div>
+            <span class="badge bg-success" id="live-status">Initializing...</span>
+            <span class="badge bg-danger ms-2" id="connection-status" style="display: none;">Disconnected</span>
+          </div>
         </div>
         <div class="card-body bg-dark p-0 position-relative">
           <video id="liveVideo" 
@@ -87,7 +111,9 @@
           </div>
           <div class="mt-2">
             <button class="btn btn-sm btn-outline-primary" id="startLiveBtn">Start Live Cam</button>
-            <button class="btn btn-sm btn-outline-secondary" id="stopLiveBtn">Stop Live Cam</button>
+            <button class="btn btn-sm btn-outline-secondary" id="stopLiveBtn">Stop Live
+
+Live Cam</button>
           </div>
         </div>
       </div>
@@ -131,57 +157,143 @@
       </div>
       {% endif %}
     </div>
+    
     <!-- Relay Monitoring Dashboard -->
     <div class="col-12 mt-4">
-      <h4>Relay Monitoring Dashboard</h4>
-      <table class="table table-bordered">
-          <thead>
-              <tr>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">Relay Monitoring Dashboard</h4>
+          <button class="btn btn-sm btn-outline-secondary" id="refreshRelaysBtn">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+              <thead>
+                <tr>
                   <th>Platform</th>
                   <th>RTMP URL</th>
                   <th>Relay Status</th>
                   <th>Last Updated</th>
                   <th>Log Output</th>
-              </tr>
-          </thead>
-          <tbody id="relay-monitor-body">
-              {% for account in social_accounts %}
-              <tr>
-                  <td>{{ account.get_platform_display }}</td>
-                  <td>{{ account.rtmp_url }}/{{ account.stream_key }}</td>
-                  <td>{{ account.relay_status|default:"Pending" }}</td>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="relay-monitor-body">
+                {% for account in social_accounts %}
+                <tr data-account-id="{{ account.id }}">
                   <td>
-                      {% if account.relay_last_updated %}
-                          {{ account.relay_last_updated|date:"Y-m-d H:i:s" }}
-                      {% else %}
-                          N/A
-                      {% endif %}
+                    <img src="{% static 'img/platforms/' %}{{ account.platform }}.png" 
+                         alt="{{ account.platform }}" 
+                         style="height: 20px; margin-right: 8px;">
+                    {{ account.get_platform_display }}
                   </td>
                   <td>
-                      <pre style="max-height: 150px; overflow: auto;">{{ account.relay_log|default:"No logs available." }}</pre>
+                    <code>{{ account.rtmp_url }}/{{ account.stream_key|truncatechars:8 }}</code>
                   </td>
-              </tr>
-              {% endfor %}
-          </tbody>
-      </table>
-  </div>
+                  <td>
+                    <span class="badge 
+                      {% if account.relay_status == 'active' %}bg-success
+                      {% elif account.relay_status == 'failed' %}bg-danger
+                      {% else %}bg-warning{% endif %}">
+                      {{ account.relay_status|default:"Pending" }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if account.relay_last_updated %}
+                      <span class="timestamp" 
+                            data-timestamp="{{ account.relay_last_updated|date:'U' }}">
+                        {{ account.relay_last_updated|date:"Y-m-d H:i:s" }}
+                      </span>
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                  <td>
+                    <pre style="max-height: 100px; overflow: auto; margin: 0; 
+                      {% if account.relay_status == 'failed' %}color: #dc3545{% endif %}">
+                      {{ account.relay_log|default:"No logs available."|truncatechars:100 }}
+                    </pre>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary restart-relay-btn" 
+                            data-account-id="{{ account.id }}">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- Footer Toolbar -->
   <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
     {% if not record_mode and social_accounts|length > 0 and config %}
-      <form method="post" action="{% url 'streaming:go_live' config_id=config.id %}">
-        {% csrf_token %}
-        <button class="btn btn-success" id="goLiveBtn">Go Live</button>
-      </form>
-  
-      <form method="post" action="{% url 'streaming:stop_live' session_id=session.id %}">
-        {% csrf_token %}
-        <button class="btn btn-danger" id="stopLiveFeedBtn">Stop Live</button>
-      </form>          
+      <button class="btn btn-success" id="goLiveBtn">
+        <span class="spinner-border spinner-border-sm d-none" id="goLiveSpinner"></span>
+        Go Live
+      </button>
+      <button class="btn btn-danger" id="stopLiveFeedBtn">
+        Stop Live
+      </button>
     {% endif %}
-    <button class="btn btn-outline-info" id="startRecordBtn">Start Recording</button>
-    <button class="btn btn-outline-warning" id="stopRecordBtn" disabled>Stop Recording</button>
+    <button class="btn btn-outline-info" id="startRecordBtn">
+      <i class="bi bi-record-circle"></i> Start Recording
+    </button>
+    <button class="btn btn-outline-warning" id="stopRecordBtn" disabled>
+      <i class="bi bi-stop-circle"></i> Stop Recording
+    </button>
+    <button class="btn btn-outline-secondary" id="settingsBtn" data-bs-toggle="modal" data-bs-target="#settingsModal">
+      <i class="bi bi-gear"></i> Settings
+    </button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="settingsModalLabel">Stream Settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="streamResolution" class="form-label">Resolution</label>
+          <select class="form-select" id="streamResolution">
+            <option value="720p" selected>720p (HD)</option>
+            <option value="480p">480p (SD)</option>
+            <option value="1080p">1080p (Full HD)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="streamFramerate" class="form-label">Frame Rate</label>
+          <select class="form-select" id="streamFramerate">
+            <option value="30" selected>30 FPS</option>
+            <option value="24">24 FPS</option>
+            <option value="60">60 FPS</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="streamBitrate" class="form-label">Bitrate (kbps)</label>
+          <input type="number" class="form-control" id="streamBitrate" value="2500">
+        </div>
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="enableAudioSwitch" checked>
+          <label class="form-check-label" for="enableAudioSwitch">Enable Audio</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -193,17 +305,22 @@
   const noLiveText      = document.getElementById("noLiveText");
   const noPreviewText   = document.getElementById("noPreviewText");
   const streamStatus    = document.getElementById("live-status");
+  const connectionStatus = document.getElementById("connection-status");
 
   // ------------------ Control buttons ------------------
   const startLiveBtn         = document.getElementById("startLiveBtn");
   const stopLiveBtn          = document.getElementById("stopLiveBtn");
-  const switchScreenBtn      = document.getElementById("switchScreenBtn");       // Screen share for preview
-  const switchScreenLiveBtn  = document.getElementById("switchScreenLiveBtn");  // Screen share for live
+  const switchScreenBtn      = document.getElementById("switchScreenBtn");
+  const switchScreenLiveBtn  = document.getElementById("switchScreenLiveBtn");
   const startRecordBtn       = document.getElementById("startRecordBtn");
   const stopRecordBtn        = document.getElementById("stopRecordBtn");
   const pushToLiveBtn        = document.getElementById("pushToLiveBtn");
   const startPreviewBtn      = document.getElementById("startPreviewBtn");
   const stopPreviewBtn       = document.getElementById("stopPreviewBtn");
+  const goLiveBtn            = document.getElementById("goLiveBtn");
+  const stopLiveFeedBtn      = document.getElementById("stopLiveFeedBtn");
+  const refreshRelaysBtn     = document.getElementById("refreshRelaysBtn");
+  const goLiveSpinner        = document.getElementById("goLiveSpinner");
 
   // ------------------ Camera select dropdowns ------------------
   const liveCameraSelect    = document.getElementById("liveCameraSelect");
@@ -218,19 +335,23 @@
   // ------------------ Session & mode variables ------------------
   const sessionUuid = "{{ session_uuid }}";
   const recordMode  = {{ record_mode|yesno:"true,false" }};
-  // 'config' is available from context; use its stream_key for SRS/WebRTC association
   const streamKey   = "{{ config.stream_key }}";
+  const configId    = "{{ config.id }}";
+  const sessionId   = "{{ session.id }}";
 
   // ------------------ Streams and recording variables ------------------
-  let liveStream           = null;  // Live feed (camera or screen share)
-  let previewStream        = null;  // Preview feed (camera or screen share)
+  let liveStream           = null;
+  let previewStream        = null;
   let mediaRecorder        = null;
   let recordedChunks       = [];
   let videoDevices         = [];
   let currentLiveDeviceId  = null;
   let currentPreviewDeviceId = null;
+  let peerConnection       = null;
+  let isStreaming          = false;
+  let relayMonitorInterval = null;
   
-  // ========== Enumerate video devices and populate camera selects ==========
+  // ========== Device Management ==========
   async function getVideoDevices() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -261,11 +382,16 @@
     });
   }
 
-  // ========== Start/Stop live camera feed (Local) ==========
+  // ========== Stream Management ==========
   async function startLiveCamera() {
     try {
       const constraints = {
-        video: { deviceId: currentLiveDeviceId ? { exact: currentLiveDeviceId } : undefined },
+        video: { 
+          deviceId: currentLiveDeviceId ? { exact: currentLiveDeviceId } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        },
         audio: true
       };
       if (liveStream) {
@@ -291,7 +417,6 @@
     }
   }
 
-  // ========== Start/Stop preview camera feed (Local) ==========
   async function startPreviewCamera() {
     try {
       if (!currentPreviewDeviceId) {
@@ -300,7 +425,11 @@
         return;
       }
       const constraints = {
-        video: { deviceId: { exact: currentPreviewDeviceId } },
+        video: { 
+          deviceId: { exact: currentPreviewDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       };
       if (previewStream) {
@@ -326,10 +455,13 @@
     noPreviewText.style.display = "block";
   }
 
-  // ========== Screen sharing (Live or Preview) ==========
+  // ========== Screen Sharing ==========
   async function switchScreenLive() {
     try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { frameRate: 30 },
+        audio: true 
+      });
       if (liveStream) liveStream.getTracks().forEach(t => t.stop());
       liveStream = displayStream;
       liveVideo.srcObject = liveStream;
@@ -342,7 +474,9 @@
 
   async function switchScreenPreview() {
     try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { frameRate: 30 } 
+      });
       if (previewStream) previewStream.getTracks().forEach(t => t.stop());
       previewStream = displayStream;
       previewVideo.srcObject = displayStream;
@@ -353,94 +487,300 @@
     }
   }
 
-  // ========== Push preview feed into the live feed (Local concept) ==========
-  function pushPreviewToLive() {
-    if (!previewStream) {
-      alert("No preview stream available to push.");
-      return;
-    }
-    if (liveStream) {
-      liveStream.getTracks().forEach(t => t.stop());
-    }
-    const newLiveStream = new MediaStream();
-    previewStream.getTracks().forEach(track => {
-      newLiveStream.addTrack(track.clone());
-    });
-    liveStream = newLiveStream;
-    liveVideo.srcObject = liveStream;
-    streamStatus.textContent = "Preview Pushed Live (Cloned)";
-    noLiveText.style.display = "none";
-  }
-
-  // ========== Push your liveStream to Django server (WebRTC offer) ==========
-  async function pushLiveStreamToServer() {
-    if (!liveStream) {
-      alert("No liveStream to push to server. Please start or push preview to live first.");
-      return;
-    }
+  // ========== Push to Live Functionality ==========
+  async function validateSocialAccounts() {
     try {
-      const pc = new RTCPeerConnection();
-      liveStream.getTracks().forEach(track => pc.addTrack(track, liveStream));
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      // Send the offer to the Django endpoint (including streamKey in URL)
-      const response = await fetch(`/streaming/offer/?stream_key=${encodeURIComponent(streamKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
-      });
-      if (!response.ok) throw new Error("Failed to send offer to server");
-      const answerData = await response.json();
-      await pc.setRemoteDescription(answerData);
-      alert("WebRTC negotiation complete. Live stream is being pushed to server!");
-    } catch (err) {
-      console.error("Error pushing live stream to server:", err);
-      alert("Failed to push live stream to server.");
-    }
-  }
-
-  // When "Go Live" is clicked, push the stream to the server via WebRTC, then trigger the backend
-document.getElementById("goLiveBtn").addEventListener("click", function(event) {
-  event.preventDefault();
-  // First, push the stream using WebRTC:
-  pushLiveStreamToServer();
-  // Then, trigger the backend live session via AJAX:
-  (async () => {
-    try {
-      const response = await fetch(`/streaming/go_live/{{ config.id }}/`, {
-        method: "POST",
-        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json" },
+      const response = await fetch(`/streaming/validate_social_accounts/`, {
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
       });
       const data = await response.json();
-      if (data.status === "ok") {
-        alert("Live stream started successfully! Session: " + data.session_uuid);
-      } else {
-        alert("Failed to start live stream: " + (data.error || "Unknown error"));
+      if (!data.valid) {
+        throw new Error(data.message || "Social account validation failed");
       }
-    } catch (error) {
-      console.error("Error starting live stream:", error);
-      alert("Error starting live stream.");
+      return true;
+    } catch (err) {
+      console.error("Validation error:", err);
+      throw err;
     }
-  })();
-});
+  }
+  async function pushLiveStreamToServer() {
+    if (!liveStream) {
+        showAlert("Please start your camera or screen share first", "danger");
+        return;
+    }
+    
+    try {
+        // Show loading state
+        const goLiveBtn = document.getElementById("goLiveBtn");
+        const goLiveSpinner = document.getElementById("goLiveSpinner");
+        const originalBtnText = goLiveBtn.innerHTML;
+        
+        goLiveBtn.disabled = true;
+        goLiveSpinner.classList.remove("d-none");
+        goLiveBtn.innerHTML = `
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Starting Stream...
+        `;
 
+        // 1. Validate social accounts
+        const validationResp = await fetch("/streaming/validate_social_accounts/", {
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        });
+        
+        if (!validationResp.ok) {
+            const error = await validationResp.json();
+            throw new Error(error.message || "Social account validation failed");
+        }
 
-  // ========== Recording the live feed locally ==========
+        // 2. Create WebRTC connection
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" }
+            ]
+        });
+        
+        // Track connection state
+        pc.onconnectionstatechange = () => {
+            const statusElement = document.getElementById("connection-status");
+            if (!statusElement) return;
+            
+            switch (pc.connectionState) {
+                case "connected":
+                    statusElement.textContent = "Connected";
+                    statusElement.className = "badge bg-success";
+                    statusElement.style.display = "inline-block";
+                    break;
+                case "disconnected":
+                case "failed":
+                    statusElement.textContent = "Disconnected";
+                    statusElement.className = "badge bg-danger";
+                    statusElement.style.display = "inline-block";
+                    break;
+                case "closed":
+                    statusElement.style.display = "none";
+                    break;
+            }
+        };
+
+        // Add media tracks
+        liveStream.getTracks().forEach(track => {
+            pc.addTrack(track, liveStream);
+        });
+
+        // 3. Create and send offer
+        const offer = await pc.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+        });
+        await pc.setLocalDescription(offer);
+
+        // Send offer to server (with retry logic)
+        let offerSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const response = await fetch(
+                    `/streaming/offer/?stream_key=${encodeURIComponent(streamKey)}`, 
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}"
+                        },
+                        body: JSON.stringify({
+                            sdp: pc.localDescription.sdp,
+                            type: pc.localDescription.type,
+                            session_uuid: sessionUuid
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "Offer failed");
+                }
+
+                const answer = await response.json();
+                await pc.setRemoteDescription(answer);
+                offerSuccess = true;
+                break;
+            } catch (err) {
+                console.error(`Offer attempt ${attempt} failed:`, err);
+                if (attempt === 3) throw err;
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
+        }
+
+        if (!offerSuccess) {
+            throw new Error("Failed to establish WebRTC connection");
+        }
+
+        // 4. Start the streaming session
+        const goLiveResp = await fetch(`/streaming/go_live/${configId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                session_uuid: sessionUuid,
+                title: document.getElementById("streamTitleInput")?.value || "Live Stream",
+                description: document.getElementById("streamDescriptionInput")?.value || ""
+            })
+        });
+
+        if (!goLiveResp.ok) {
+            const error = await goLiveResp.json();
+            throw new Error(error.message || "Failed to start streaming session");
+        }
+
+        // Update UI
+        isStreaming = true;
+        document.getElementById("live-status").textContent = "Live Streaming";
+        startRelayMonitoring();
+        showAlert("Live stream started successfully!", "success");
+
+    } catch (err) {
+        console.error("Stream start failed:", err);
+        showAlert(`Failed to start stream: ${err.message}`, "danger");
+    } finally {
+        const goLiveBtn = document.getElementById("goLiveBtn");
+        const goLiveSpinner = document.getElementById("goLiveSpinner");
+        
+        goLiveBtn.disabled = false;
+        goLiveSpinner.classList.add("d-none");
+        goLiveBtn.innerHTML = "Go Live";
+    }
+}
+
+// Helper function to show alerts
+function showAlert(message, type) {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+    alertDiv.role = "alert";
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    const container = document.querySelector(".container-fluid");
+    container.prepend(alertDiv);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alertDiv);
+        bsAlert.close();
+    }, 5000);
+}
+  async function stopLiveStream() {
+    try {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      
+      const response = await fetch(`/streaming/stop_live/${sessionId}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+      });
+      
+      const data = await response.json();
+      if (data.status === "ok") {
+        isStreaming = false;
+        streamStatus.textContent = "Stream Ended";
+        connectionStatus.style.display = "none";
+        stopRelayMonitoring();
+        alert("Live stream stopped successfully");
+      } else {
+        throw new Error(data.error || "Failed to stop stream");
+      }
+    } catch (err) {
+      console.error("Error stopping live stream:", err);
+      alert("Failed to stop live stream");
+    }
+  }
+
+  // ========== Relay Monitoring ==========
+  function startRelayMonitoring() {
+    // Update immediately
+    updateRelayStatus();
+    // Then every 5 seconds
+    relayMonitorInterval = setInterval(updateRelayStatus, 5000);
+  }
+
+  function stopRelayMonitoring() {
+    if (relayMonitorInterval) {
+      clearInterval(relayMonitorInterval);
+      relayMonitorInterval = null;
+    }
+  }
+
+  async function updateRelayStatus() {
+    try {
+      const response = await fetch(`/streaming/relay_status/${sessionId}/`);
+      const statusData = await response.json();
+      
+      const relayMonitorBody = document.getElementById("relay-monitor-body");
+      relayMonitorBody.innerHTML = statusData.relays.map(relay => `
+        <tr data-account-id="${relay.id}">
+          <td>
+            <img src="{% static 'img/platforms/' %}${relay.platform}.png" 
+                 alt="${relay.platform}" 
+                 style="height: 20px; margin-right: 8px;">
+            ${relay.platform_display}
+          </td>
+          <td><code>${relay.rtmp_url}/${relay.stream_key}</code></td>
+          <td>
+            <span class="badge ${relay.status === 'active' ? 'bg-success' : 
+                              relay.status === 'failed' ? 'bg-danger' : 'bg-warning'}">
+              ${relay.status}
+            </span>
+          </td>
+          <td>
+            <span class="timestamp" data-timestamp="${new Date(relay.last_updated).getTime() / 1000}">
+              ${new Date(relay.last_updated).toLocaleString()}
+            </span>
+          </td>
+          <td>
+            <pre style="max-height: 100px; overflow: auto; margin: 0;
+                  ${relay.status === 'failed' ? 'color: #dc3545' : ''}">
+              ${relay.log || 'No logs available'}
+            </pre>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary restart-relay-btn" 
+                    data-account-id="${relay.id}">
+              <i class="bi bi-arrow-repeat"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      
+    } catch (err) {
+      console.error("Error updating relay status:", err);
+    }
+  }
+
+  // ========== Recording ==========
   function startRecording() {
     if (!liveStream) {
       alert("Please start a live feed before recording.");
       return;
     }
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(liveStream, { mimeType: 'video/webm; codecs=vp9' });
+    mediaRecorder = new MediaRecorder(liveStream, { 
+      mimeType: 'video/webm; codecs=vp9',
+      bitsPerSecond: 2500000
+    });
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunks.push(e.data);
     };
     mediaRecorder.onstop = uploadRecording;
-    mediaRecorder.start();
+    mediaRecorder.start(1000); // Collect data every 1 second
     startRecordBtn.disabled = true;
     stopRecordBtn.disabled  = false;
-    alert("Recording started!");
   }
 
   async function uploadRecording() {
@@ -448,30 +788,34 @@ document.getElementById("goLiveBtn").addEventListener("click", function(event) {
     recordedChunks = [];
     const formData = new FormData();
     formData.append("video_file", blob, `recorded_${sessionUuid}.webm`);
+    formData.append("session_uuid", sessionUuid);
+    formData.append("title", document.getElementById("streamTitleInput").value);
+    formData.append("description", document.getElementById("streamDescriptionInput").value);
+    
     try {
       const resp = await fetch("{% url 'streaming:upload_recorded' %}", {
         method: "POST",
         body: formData,
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
       });
       if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
       alert("Recording uploaded successfully!");
     } catch (err) {
       console.error("Error uploading recording:", err);
-      alert("Failed to upload recording.");
+      alert("Failed to upload recording. Please try again.");
+    } finally {
+      startRecordBtn.disabled = false;
+      stopRecordBtn.disabled  = true;
     }
-    startRecordBtn.disabled = false;
-    stopRecordBtn.disabled  = true;
   }
 
   function stopRecording() {
-    if (!mediaRecorder) {
-      alert("No recording is in progress.");
-      return;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
     }
-    mediaRecorder.stop();
   }
 
-  // ========== Chat fetch & send ==========
+  // ========== Chat Functions ==========
   async function fetchChatMessages() {
     try {
       const r = await fetch(`/streaming/fetch_chat_messages/?session_uuid=${sessionUuid}`);
@@ -490,14 +834,22 @@ document.getElementById("goLiveBtn").addEventListener("click", function(event) {
     }
     let html = "";
     for (const msg of messages) {
-      html += `<div><strong>${msg.user}:</strong> ${msg.text}</div>`;
+      html += `
+        <div class="chat-message mb-2">
+          <strong>${msg.user}:</strong> 
+          <span>${msg.text}</span>
+          <small class="text-muted d-block">${new Date(msg.created_at).toLocaleTimeString()}</small>
+        </div>
+      `;
     }
     chatContainer.innerHTML = html;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
   async function sendChat() {
     const msg = chatMessage.value.trim();
     if (!msg) return;
+    
     try {
       const resp = await fetch("/streaming/send_chat_message/", {
         method: "POST",
@@ -505,7 +857,10 @@ document.getElementById("goLiveBtn").addEventListener("click", function(event) {
           "X-CSRFToken": "{{ csrf_token }}",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ session_uuid: sessionUuid, text: msg }),
+        body: JSON.stringify({ 
+          session_uuid: sessionUuid, 
+          text: msg 
+        }),
       });
       if (!resp.ok) throw new Error("Error sending chat message");
       chatMessage.value = "";
@@ -515,34 +870,47 @@ document.getElementById("goLiveBtn").addEventListener("click", function(event) {
     }
   }
 
-  // ========== Polling for SRS stream health and relay status ==========
+  // ========== Stream Status Monitoring ==========
   function pollStreamStatus() {
+    if (!isStreaming) return;
+    
     fetch(`/check_stream_status/${encodeURIComponent(streamKey)}`)
       .then(response => response.json())
       .then(data => {
-        console.log("SRS Stats:", data.srs_stats);
-        if (data.relay_stats && data.relay_stats.length > 0) {
-          streamStatus.textContent = `Live to ${data.relay_stats.length} platform(s)`;
-        } else {
-          streamStatus.textContent = "Live (No relay data)";
+        if (data.srs_stats) {
+          const { clients, video, audio } = data.srs_stats;
+          let statusText = "Live Streaming";
+          if (clients > 0) statusText += ` (${clients} viewer${clients !== 1 ? 's' : ''})`;
+          if (video && audio) statusText += " - Video & Audio OK";
+          else if (video) statusText += " - Video Only";
+          else if (audio) statusText += " - Audio Only";
+          streamStatus.textContent = statusText;
         }
       })
       .catch(err => console.error("Stream status polling error:", err));
   }
 
-  setInterval(pollStreamStatus, 5000);
-
-  // ========== On page load ==========
-  window.addEventListener("load", async () => {
+  // ========== Event Listeners ==========
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize devices and streams
     await getVideoDevices();
-    await startLiveCamera();
     await startPreviewCamera();
+    
+    // Set up periodic checks
+    setInterval(pollStreamStatus, 5000);
     if (!recordMode) {
-      setInterval(fetchChatMessages, 5000);
+      setInterval(fetchChatMessages, 3000);
     }
+    
+    // Handle beforeunload to clean up streams
+    window.addEventListener('beforeunload', () => {
+      if (isStreaming) {
+        return "You're currently live streaming. Are you sure you want to leave?";
+      }
+    });
   });
 
-  // ========== Camera select changes ==========
+  // Camera select changes
   liveCameraSelect.addEventListener("change", (e) => {
     currentLiveDeviceId = e.target.value;
     startLiveCamera();
@@ -552,20 +920,56 @@ document.getElementById("goLiveBtn").addEventListener("click", function(event) {
     startPreviewCamera();
   });
 
-  // ========== Button event listeners ==========
+  // Button event listeners
   startLiveBtn.addEventListener("click", startLiveCamera);
   stopLiveBtn.addEventListener("click", stopLiveCamera);
   switchScreenLiveBtn.addEventListener("click", switchScreenLive);
   startPreviewBtn.addEventListener("click", startPreviewCamera);
   stopPreviewBtn.addEventListener("click", stopPreviewCamera);
   switchScreenBtn.addEventListener("click", switchScreenPreview);
-  pushToLiveBtn.addEventListener("click", () => {
-    pushPreviewToLive();
-    pushLiveStreamToServer();
-  });
+  pushToLiveBtn.addEventListener("click", pushLiveStreamToServer);
   startRecordBtn.addEventListener("click", startRecording);
   stopRecordBtn.addEventListener("click", stopRecording);
+  goLiveBtn.addEventListener("click", pushLiveStreamToServer);
+  stopLiveFeedBtn.addEventListener("click", stopLiveStream);
+  refreshRelaysBtn.addEventListener("click", updateRelayStatus);
+  
+  // Chat events
   if (refreshChatBtn) refreshChatBtn.addEventListener("click", fetchChatMessages);
-  if (sendChatBtn)    sendChatBtn.addEventListener("click", sendChat);
+  if (sendChatBtn) sendChatBtn.addEventListener("click", sendChat);
+  if (chatMessage) {
+    chatMessage.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendChat();
+    });
+  }
+  
+  // Handle relay restarts
+  document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('restart-relay-btn') || 
+        e.target.closest('.restart-relay-btn')) {
+      const btn = e.target.classList.contains('restart-relay-btn') ? 
+                 e.target : e.target.closest('.restart-relay-btn');
+      const accountId = btn.dataset.accountId;
+      
+      try {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        const response = await fetch(`/streaming/restart_relay/${accountId}/`, {
+          method: "POST",
+          headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        });
+        const data = await response.json();
+        if (data.status === "ok") {
+          updateRelayStatus();
+        } else {
+          throw new Error(data.error || "Failed to restart relay");
+        }
+      } catch (err) {
+        console.error("Error restarting relay:", err);
+        alert("Failed to restart relay. Please try again.");
+      } finally {
+        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+      }
+    }
+  });
 </script>
 {% endblock %}
