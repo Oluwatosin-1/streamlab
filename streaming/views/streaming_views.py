@@ -581,7 +581,6 @@ def local_record_session(request):
 @login_required
 @csrf_exempt
 def upload_recorded(request):
-    """Handle upload of recorded videos"""
     try:
         if request.method != "POST":
             return JsonResponse(

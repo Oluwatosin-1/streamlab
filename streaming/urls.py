@@ -1,6 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 
+from streaming.views.local_studio import list_local_recordings, studio_local
 from streaming.views.srs_hooks import srs_on_publish, srs_on_unpublish
 from streaming.views.streaming_views import (
     StreamingConfigurationListView,
@@ -15,6 +16,7 @@ from streaming.views.streaming_views import (
     local_record_session,
     manage_channels,
     offer,
+    relay_status,
     send_chat_message,
     srs_console,
     start_streaming_session,
@@ -120,7 +122,6 @@ urlpatterns = [
         fetch_chat_messages,
         name="fetch_chat_messages",
     ),
-    # path("session/<int:session_id>/chat/fetch/", fetch_chat_messages, name="fetch_chat_messages"),
     path(
         "validate_social_accounts/",
         validate_social_accounts,
@@ -136,6 +137,9 @@ urlpatterns = [
         check_stream_status,
         name="check_stream_status",
     ),
+     
+    path('send_chat_message/<uuid:session_id>/', send_chat_message, name='send_chat_message'),
+    path('relay_status/<int:session_id>/', relay_status, name='relay_status'),
     path("go-live/<int:config_id>/", go_live, name="go_live"),
     path("stop-live/<int:session_id>/", end_streaming_session, name="stop_live"),
     path("api/srs/on_publish/", srs_on_publish, name="srs_on_publish"),
@@ -144,4 +148,21 @@ urlpatterns = [
     path("studio/", studio_enter, name="studio"),
     path("console/", srs_console, name="srs_console"),
     path("offer/", offer, name="offer"),
+]
+
+urlpatterns += [ 
+    # 1) Local studio entrypoint
+    path("studio/local/", studio_local, name="studio_local"),
+
+    # 2) Chat AJAX endpoints, using only query‑string (no path args)
+    path(
+        "fetch_chat_messages/",
+        fetch_chat_messages,
+        name="fetch_chat_messages"
+    ),
+    path(
+        "send_chat_message/",
+        send_chat_message,
+        name="send_chat_message"
+    ),
 ]
