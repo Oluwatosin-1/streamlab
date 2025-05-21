@@ -5,7 +5,8 @@ from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden
 
 from streaming.forms import ScheduledVideoForm
-from streaming.models import ScheduledVideo 
+from streaming.models import ScheduledVideo
+
 
 # List all scheduled videos for the logged-in user.
 class ScheduledVideoListView(LoginRequiredMixin, ListView):
@@ -55,11 +56,12 @@ def publish_scheduled_video(request, pk):
     if not request.user.is_authenticated:
         return HttpResponseForbidden("You must be logged in.")
     scheduled = get_object_or_404(ScheduledVideo, pk=pk, user=request.user)
-    
+
     # Optionally, trigger a Celery task to start streaming the scheduled video.
     from streaming.tasks import publish_scheduled_video_task
+
     publish_scheduled_video_task.delay(scheduled.id)
-    
+
     scheduled.is_published = True
     scheduled.save()
     return redirect("streaming:scheduled_video_list")

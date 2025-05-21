@@ -5,80 +5,82 @@ import uuid
 from django.utils import timezone
 
 # Regex to validate URLs starting with http, https, rtmp, rtmps, or ftp.
-rtmp_url_regex = r'^(https?|rtmps?|ftp)://.+$'
+rtmp_url_regex = r"^(https?|rtmps?|ftp)://.+$"
 rtmp_url_validator = RegexValidator(
     regex=rtmp_url_regex,
-    message="Enter a valid URL. It should start with http, https, rtmp or rtmps."
+    message="Enter a valid URL. It should start with http, https, rtmp or rtmps.",
 )
+
 
 def generate_stream_key():
     """Generates a unique stream key (32-character hex)."""
     return uuid.uuid4().hex
 
+
 PLATFORM_CHOICES = [
-    ('youtube', 'YouTube'),
-    ('facebook', 'Facebook'),
-    ('twitch', 'Twitch'),
-    ('instagram', 'Instagram'),
-    ('tiktok', 'TikTok'),
-    ('telegram', 'Telegram'),
-    ('custom', 'Custom'),
+    ("youtube", "YouTube"),
+    ("facebook", "Facebook"),
+    ("twitch", "Twitch"),
+    ("instagram", "Instagram"),
+    ("tiktok", "TikTok"),
+    ("telegram", "Telegram"),
+    ("custom", "Custom"),
 ]
+
 
 class StreamingConfiguration(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='streaming_configurations'
+        related_name="streaming_configurations",
     )
     stream_title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES, default='custom')
+    platform = models.CharField(
+        max_length=50, choices=PLATFORM_CHOICES, default="custom"
+    )
     rtmp_url = models.CharField(
         max_length=500,
         help_text="Primary RTMP endpoint",
-        validators=[rtmp_url_validator]
+        validators=[rtmp_url_validator],
     )
     stream_key = models.CharField(
-        max_length=255,
-        help_text="Unique stream key",
-        default=generate_stream_key
+        max_length=255, help_text="Unique stream key", default=generate_stream_key
     )
     backup_rtmp_url = models.CharField(
         max_length=500,
         blank=True,
         null=True,
         help_text="Backup RTMP endpoint",
-        validators=[rtmp_url_validator]
+        validators=[rtmp_url_validator],
     )
     backup_stream_key = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text="Backup stream key"
+        max_length=255, blank=True, null=True, help_text="Backup stream key"
     )
     pull_links = models.TextField(
         blank=True,
         null=True,
-        help_text="Comma-separated or multi-line list of pull links"
+        help_text="Comma-separated or multi-line list of pull links",
     )
     embed_player_url = models.CharField(
         max_length=500,
         blank=True,
         null=True,
         help_text="URL to embed the web player",
-        validators=[rtmp_url_validator]
+        validators=[rtmp_url_validator],
     )
     embed_chat_url = models.CharField(
         max_length=500,
         blank=True,
         null=True,
         help_text="URL to embed multi-platform chat",
-        validators=[rtmp_url_validator]
+        validators=[rtmp_url_validator],
     )
-    resolution = models.CharField(max_length=50, default='1080p')
-    bitrate = models.CharField(max_length=50, default='4500kbps')
-    is_active = models.BooleanField(default=False, help_text="Is this configuration active?")
+    resolution = models.CharField(max_length=50, default="1080p")
+    bitrate = models.CharField(max_length=50, default="4500kbps")
+    is_active = models.BooleanField(
+        default=False, help_text="Is this configuration active?"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -91,21 +93,21 @@ class StreamingConfiguration(models.Model):
 
 class StreamingSession(models.Model):
     STATUS_CHOICES = [
-        ('live', 'Live'),
-        ('ended', 'Ended'),
-        ('error', 'Error'),
+        ("live", "Live"),
+        ("ended", "Ended"),
+        ("error", "Error"),
     ]
     configuration = models.ForeignKey(
-        StreamingConfiguration,
-        on_delete=models.CASCADE,
-        related_name='sessions'
+        StreamingConfiguration, on_delete=models.CASCADE, related_name="sessions"
     )
     session_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     session_start = models.DateTimeField(auto_now_add=True)
     session_end = models.DateTimeField(blank=True, null=True)
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='live')
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="live")
     viewers_count = models.PositiveIntegerField(default=0)
-    error_message = models.TextField(blank=True, null=True, help_text="Error details if session encounters issues")
+    error_message = models.TextField(
+        blank=True, null=True, help_text="Error details if session encounters issues"
+    )
 
     def __str__(self):
         return f"Session {self.session_uuid} for {self.configuration.stream_title} - {self.status}"
@@ -124,7 +126,7 @@ class StreamingSession(models.Model):
 class ScheduledVideo(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    video_file = models.FileField(upload_to='scheduled_videos/', blank=True, null=True)
+    video_file = models.FileField(upload_to="scheduled_videos/", blank=True, null=True)
     scheduled_time = models.DateTimeField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,65 +142,70 @@ class ChatMessage(models.Model):
         on_delete=models.CASCADE,
         related_name="chat_messages",
         blank=True,
-        null=True
+        null=True,
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="chat_messages"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_messages"
     )
     text = models.TextField(help_text="The content of the chat message")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="Time when the message was created")
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Time when the message was created"
+    )
 
     def __str__(self):
         return f"{self.user.username}: {self.text[:30]}"
+
 
 class StreamingPlatformAccount(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="streaming_platform_accounts"
+        related_name="streaming_platform_accounts",
     )
     platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES)
     account_username = models.CharField(
         max_length=255,
         blank=True,
         null=True,
-        help_text="Username or channel name on the platform"
+        help_text="Username or channel name on the platform",
     )
     rtmp_url = models.CharField(
         max_length=500,
         blank=True,
         null=True,
         help_text="RTMP URL for the account",
-        validators=[rtmp_url_validator]
+        validators=[rtmp_url_validator],
     )
     stream_key = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text="Stream key for the account"
+        max_length=255, blank=True, null=True, help_text="Stream key for the account"
     )
-    display_name = models.CharField(max_length=255, blank=True, null=True, help_text="Display name for the account")
+    display_name = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Display name for the account"
+    )
     access_token = models.CharField(max_length=500, blank=True, null=True)
     refresh_token = models.CharField(max_length=500, blank=True, null=True)
     expires_at = models.DateTimeField(blank=True, null=True)
-    is_active = models.BooleanField(default=False, help_text="Is this social account actively connected?")
+    is_active = models.BooleanField(
+        default=False, help_text="Is this social account actively connected?"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.platform} ({self.account_username or 'No Username'})"
 
-class StreamingRelayStatus(models.Model):
-    """
-    Optional: Tracks the relay status for each external social platform.
-    Useful for building a dashboard that shows the status (pending, success, error) for each platform.
-    """
-    session = models.ForeignKey(StreamingSession, on_delete=models.CASCADE, related_name="relay_statuses")
+
+class StreamingRelayStatus(models.Model): 
+    session = models.ForeignKey(
+        StreamingSession, on_delete=models.CASCADE, related_name="relay_statuses"
+    )
     platform = models.CharField(max_length=100)
     rtmp_url = models.URLField()
-    status = models.CharField(max_length=20, choices=[("pending", "Pending"), ("success", "Success"), ("error", "Error")], default="pending")
+    status = models.CharField(
+        max_length=20,
+        choices=[("pending", "Pending"), ("success", "Success"), ("error", "Error")],
+        default="pending",
+    )
     last_attempted = models.DateTimeField(auto_now=True)
     log_summary = models.TextField(blank=True, null=True)
 

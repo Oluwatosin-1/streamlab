@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-3!w*)^=uxe1qgvw^1ce94p@+42&#gefr6sfbva1!q=bx57zr@u
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', 'streaming.obairawoengineering.com', 'localhost']
+ALLOWED_HOSTS = ["*", "streaming.obairawoengineering.com", "localhost"]
 
 
 # Application definition
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     "corsheaders",  # Cross-Origin Resource Sharing (for frontend)
     "rest_framework_simplejwt",  # JWT Authentication
     "users",  # User Authentication & Subscription
-    "streaming",  # RTMP Streaming & Social Connection 
+    "streaming",  # RTMP Streaming & Social Connection
     "dashboard",  # User Dashboard Integration
 ]
 
@@ -76,7 +76,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "streamlab.wsgi.application"
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 # Database
@@ -147,10 +147,10 @@ STRIPE_SECRET_KEY = ""
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media") 
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -163,29 +163,37 @@ GOOGLE_OAUTH_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, "client_secret.json")
 import os
 
 FACEBOOK_APP_ID = os.environ.get("FACEBOOK_APP_ID", "3999257497026619")
-FACEBOOK_APP_SECRET = os.environ.get("FACEBOOK_APP_SECRET", "a3711cf22c091b41af61cd4bbc1f86e4") 
-FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI", "https://localhost:8000/streaming/facebook/callback/")
+FACEBOOK_APP_SECRET = os.environ.get(
+    "FACEBOOK_APP_SECRET", "a3711cf22c091b41af61cd4bbc1f86e4"
+)
+FACEBOOK_REDIRECT_URI = os.environ.get(
+    "FACEBOOK_REDIRECT_URI", "https://localhost:8000/streaming/facebook/callback/"
+)
 
 # e.g. "http://localhost:8000/streaming/youtube/callback/"
 # settings.py
-YOUTUBE_CLIENT_ID = "1003940566003-nlhu7pb6t0rr889ic4mj6c42qkonhq3n.apps.googleusercontent.com"
+YOUTUBE_CLIENT_ID = (
+    "1003940566003-nlhu7pb6t0rr889ic4mj6c42qkonhq3n.apps.googleusercontent.com"
+)
 YOUTUBE_CLIENT_SECRET = "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"
-YOUTUBE_REDIRECT_URI = "http://localhost:8000/streaming/youtube/callback/"  # Updated redirect URI
+YOUTUBE_REDIRECT_URI = (
+    "http://localhost:8000/streaming/youtube/callback/"  # Updated redirect URI
+)
 
 # e.g. "http://localhost:8000/streaming/facebook/callback/"
 FACEBOOK_REDIRECT_URI = os.environ.get("FACEBOOK_REDIRECT_URI")
 
-SRS_SERVER_HOST = 'localhost'  # or your SRS server domain/IP if different
+SRS_SERVER_HOST = "localhost"  # or your SRS server domain/IP if different
 SRS_API_PORT = 1985
 # settings.py
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_BROKER_URL = 'redis://streamlab_redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
+CELERY_BROKER_URL = "redis://streamlab_redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
 
-# #how to reload the docker 
+# #how to reload the docker
 # docker stop streamlab_app
 # docker rm streamlab_app
 # docker build -t streamlab .

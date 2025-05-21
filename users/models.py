@@ -3,6 +3,7 @@ from django.db import models
 
 from streamlab import settings
 
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
 
@@ -16,8 +17,9 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ["username"]
 
     def __str__(self):
-        return self.username 
-    
+        return self.username
+
+
 class SocialAccount(models.Model):
     PLATFORM_CHOICES = [
         ("youtube", "YouTube"),
@@ -25,9 +27,13 @@ class SocialAccount(models.Model):
         ("twitch", "Twitch"),
         ("instagram", "Instagram"),
         ("tiktok", "Tiktok"),
-        ("telegram", "Telegram"), 
+        ("telegram", "Telegram"),
     ]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='social_accounts')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="social_accounts",
+    )
     platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES)
 
     # Generic tokens

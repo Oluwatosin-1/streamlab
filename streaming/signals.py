@@ -9,6 +9,7 @@ from streaming.models import StreamingPlatformAccount
 
 logger = logging.getLogger(__name__)
 
+
 @receiver(social_account_added)
 def handle_social_account_added(request, sociallogin, **kwargs):
     """
@@ -42,20 +43,31 @@ def handle_social_account_added(request, sociallogin, **kwargs):
             _fetch_facebook_streamkey(access_token, account)
 
         elif provider == "instagram":
-            logger.info("Instagram provider (signal): manual RTMP/stream key entry required.")
+            logger.info(
+                "Instagram provider (signal): manual RTMP/stream key entry required."
+            )
 
         elif provider == "twitter":
-            logger.info("Twitter provider (signal): storing tokens; live streaming integration is custom.")
+            logger.info(
+                "Twitter provider (signal): storing tokens; live streaming integration is custom."
+            )
 
         elif provider == "telegram":
-            logger.info("Telegram provider (signal): storing tokens; manual RTMP setup required.")
+            logger.info(
+                "Telegram provider (signal): storing tokens; manual RTMP setup required."
+            )
 
         else:
             logger.info("Provider '%s' not specifically handled in signal.", provider)
     except Exception as e:
-        logger.exception("Error processing provider '%s' in social_account_added signal: %s", provider, e)
+        logger.exception(
+            "Error processing provider '%s' in social_account_added signal: %s",
+            provider,
+            e,
+        )
 
     account.save()
+
 
 @receiver(social_account_updated)
 def handle_social_account_updated(request, sociallogin, **kwargs):
@@ -68,10 +80,18 @@ def handle_social_account_updated(request, sociallogin, **kwargs):
 
     try:
         account = StreamingPlatformAccount.objects.get(user=user, platform=provider)
-        logger.info("Updated account found. Access Token: %s, Stream Key: %s", account.access_token, account.stream_key)
+        logger.info(
+            "Updated account found. Access Token: %s, Stream Key: %s",
+            account.access_token,
+            account.stream_key,
+        )
         # If needed, you can re-fetch or refresh the stream key here.
     except StreamingPlatformAccount.DoesNotExist:
-        logger.error("No StreamingPlatformAccount found for provider '%s' and user %s", provider, user)
+        logger.error(
+            "No StreamingPlatformAccount found for provider '%s' and user %s",
+            provider,
+            user,
+        )
 
 
 # Helper functions for signals (similar to the ones in the adapter)
@@ -92,14 +112,21 @@ def _fetch_youtube_streamkey(access_token, account):
             stream_key = ingestion_info.get("streamName")
             if stream_key:
                 account.stream_key = stream_key
-                logger.info("Fetched YouTube stream key in signal for user %s", account.user)
+                logger.info(
+                    "Fetched YouTube stream key in signal for user %s", account.user
+                )
     else:
-        logger.warning("YouTube API call failed in signal with status %s", resp.status_code)
+        logger.warning(
+            "YouTube API call failed in signal with status %s", resp.status_code
+        )
+
 
 def _fetch_facebook_streamkey(access_token, account):
     page_id = getattr(settings, "SOCIAL_AUTH_FACEBOOK_PAGE_ID", None)
     if not page_id:
-        logger.error("SOCIAL_AUTH_FACEBOOK_PAGE_ID is not set; cannot fetch FB stream key in signal.")
+        logger.error(
+            "SOCIAL_AUTH_FACEBOOK_PAGE_ID is not set; cannot fetch FB stream key in signal."
+        )
         return
 
     fb_api_url = f"https://graph.facebook.com/v14.0/{page_id}/live_videos"
@@ -118,6 +145,10 @@ def _fetch_facebook_streamkey(access_token, account):
             raw_key = parsed.path.replace("/rtmp/", "")
             account.rtmp_url = stream_url
             account.stream_key = raw_key
-            logger.info("Fetched Facebook stream key in signal for user %s", account.user)
+            logger.info(
+                "Fetched Facebook stream key in signal for user %s", account.user
+            )
     else:
-        logger.warning("Facebook API call failed in signal with status %s", fb_resp.status_code)
+        logger.warning(
+            "Facebook API call failed in signal with status %s", fb_resp.status_code
+        )

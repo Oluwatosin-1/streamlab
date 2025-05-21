@@ -7,6 +7,7 @@ from streaming.models import StreamingPlatformAccount
 
 logger = logging.getLogger(__name__)
 
+
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     Adapter to handle user creation/updates, token storage, and
@@ -52,20 +53,30 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
 
             elif provider == "instagram":
                 # No official live API. Tokens stored; user must add RTMP & stream key manually.
-                logger.info("Instagram provider: storing tokens; manual RTMP/stream key entry required.")
+                logger.info(
+                    "Instagram provider: storing tokens; manual RTMP/stream key entry required."
+                )
 
             elif provider == "twitter":
                 # No official streaming API. Just store tokens.
-                logger.info("Twitter provider: storing tokens only; manual or custom integration required.")
+                logger.info(
+                    "Twitter provider: storing tokens only; manual or custom integration required."
+                )
 
             elif provider == "telegram":
                 # Telegram requires manual RTMP/stream key entry.
-                logger.info("Telegram provider: storing tokens; manual RTMP/stream key setup required.")
+                logger.info(
+                    "Telegram provider: storing tokens; manual RTMP/stream key setup required."
+                )
 
             else:
-                logger.info("Provider '%s' not specifically handled in adapter.", provider)
+                logger.info(
+                    "Provider '%s' not specifically handled in adapter.", provider
+                )
         except Exception as e:
-            logger.exception("Error processing provider '%s' in adapter: %s", provider, str(e))
+            logger.exception(
+                "Error processing provider '%s' in adapter: %s", provider, str(e)
+            )
 
         account.save()
         return user
@@ -101,7 +112,9 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         page_id = getattr(settings, "SOCIAL_AUTH_FACEBOOK_PAGE_ID", None)
         if not page_id:
-            logger.error("SOCIAL_AUTH_FACEBOOK_PAGE_ID is not set in settings; cannot fetch FB stream key.")
+            logger.error(
+                "SOCIAL_AUTH_FACEBOOK_PAGE_ID is not set in settings; cannot fetch FB stream key."
+            )
             return
 
         fb_api_url = f"https://graph.facebook.com/v14.0/{page_id}/live_videos"
@@ -122,4 +135,6 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 account.stream_key = raw_key
                 logger.info("Fetched Facebook stream key for user %s", account.user)
         else:
-            logger.warning("Facebook API call failed with status %s", fb_resp.status_code)
+            logger.warning(
+                "Facebook API call failed with status %s", fb_resp.status_code
+            )

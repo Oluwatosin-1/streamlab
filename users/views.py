@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from .forms import CustomUserCreationForm 
+from .forms import CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
+
 
 def user_login(request):
     if request.method == "POST":
@@ -40,6 +41,7 @@ def user_logout(request):
     logout(request)
     messages.success(request, "You have been logged out successfully.")
     return redirect("login")
+
 
 @login_required
 def account_settings(request):

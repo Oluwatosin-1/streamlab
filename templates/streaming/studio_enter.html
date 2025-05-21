@@ -350,6 +350,59 @@ Live Cam</button>
   let peerConnection       = null;
   let isStreaming          = false;
   let relayMonitorInterval = null;
+  let isRecording   = false;      // ✨ NEW 
+
+  function createMediaRecorder(stream) {                 // ✨ NEW
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: "video/webm;codecs=vp9",
+      bitsPerSecond: 2_500_000,
+    });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size) recordedChunks.push(e.data);
+    };
+
+    // ‼️ Don't upload here.  Just restart if we are still recording.
+    mediaRecorder.onstop = () => {
+      if (isRecording) {
+        // we stopped only because the stream changed → start a fresh recorder
+        createMediaRecorder(liveStream);
+        mediaRecorder.start(1000);
+      }
+    };
+  }
+  function startRecording() {
+  if (!liveStream) {
+    showAlert("Please start a live feed before recording.", "warning");
+    return;
+  }
+  if (isRecording) return;                 // already recording
+
+  recordedChunks = [];
+  isRecording    = true;
+
+  createMediaRecorder(liveStream);
+  mediaRecorder.start(1000);
+
+  startRecordBtn.disabled = true;
+  stopRecordBtn.disabled  = false;
+}
+async function stopRecording() {
+  if (!isRecording) return;
+
+  isRecording = false;          // stop future auto-restarts
+
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    // after 'stop' fires, uploadRecording() will be called exactly once
+    mediaRecorder.addEventListener("stop", uploadRecording, { once: true });
+    mediaRecorder.stop();
+  }
+
+  startRecordBtn.disabled = false;
+  stopRecordBtn.disabled  = true;
+}
+
+
   
   // ========== Device Management ==========
   async function getVideoDevices() {
@@ -453,23 +506,6 @@ Live Cam</button>
     }
     previewVideo.style.display = "none";
     noPreviewText.style.display = "block";
-  }
-
-  // ========== Screen Sharing ==========
-  async function switchScreenLive() {
-    try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ 
-        video: { frameRate: 30 },
-        audio: true 
-      });
-      if (liveStream) liveStream.getTracks().forEach(t => t.stop());
-      liveStream = displayStream;
-      liveVideo.srcObject = liveStream;
-      streamStatus.textContent = "Screen Shared (Live)";
-      noLiveText.style.display = "none";
-    } catch (err) {
-      console.error("Error switching to screen share for live feed:", err);
-    }
   }
 
   async function switchScreenPreview() {
@@ -762,59 +798,7 @@ function showAlert(message, type) {
       console.error("Error updating relay status:", err);
     }
   }
-
-  // ========== Recording ==========
-  function startRecording() {
-    if (!liveStream) {
-      alert("Please start a live feed before recording.");
-      return;
-    }
-    recordedChunks = [];
-    mediaRecorder = new MediaRecorder(liveStream, { 
-      mimeType: 'video/webm; codecs=vp9',
-      bitsPerSecond: 2500000
-    });
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) recordedChunks.push(e.data);
-    };
-    mediaRecorder.onstop = uploadRecording;
-    mediaRecorder.start(1000); // Collect data every 1 second
-    startRecordBtn.disabled = true;
-    stopRecordBtn.disabled  = false;
-  }
-
-  async function uploadRecording() {
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    recordedChunks = [];
-    const formData = new FormData();
-    formData.append("video_file", blob, `recorded_${sessionUuid}.webm`);
-    formData.append("session_uuid", sessionUuid);
-    formData.append("title", document.getElementById("streamTitleInput").value);
-    formData.append("description", document.getElementById("streamDescriptionInput").value);
-    
-    try {
-      const resp = await fetch("{% url 'streaming:upload_recorded' %}", {
-        method: "POST",
-        body: formData,
-        headers: { "X-CSRFToken": "{{ csrf_token }}" }
-      });
-      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-      alert("Recording uploaded successfully!");
-    } catch (err) {
-      console.error("Error uploading recording:", err);
-      alert("Failed to upload recording. Please try again.");
-    } finally {
-      startRecordBtn.disabled = false;
-      stopRecordBtn.disabled  = true;
-    }
-  }
-
-  function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-  }
-
+ 
   // ========== Chat Functions ==========
   async function fetchChatMessages() {
     try {

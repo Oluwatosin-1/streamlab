@@ -7,7 +7,7 @@ from django import forms
 
 from streaming.forms import ChatMessageForm
 from streaming.models import ChatMessage, StreamingSession
- 
+
 
 @login_required
 def chat_room(request, session_id):
@@ -15,11 +15,13 @@ def chat_room(request, session_id):
     Displays a chat room for a given streaming session. Users can view
     all chat messages and post new messages.
     """
-    session = get_object_or_404(StreamingSession, id=session_id, configuration__user=request.user)
-    
+    session = get_object_or_404(
+        StreamingSession, id=session_id, configuration__user=request.user
+    )
+
     # Get chat messages ordered by creation time.
-    chat_messages = session.chat_messages.all().order_by('created_at')
-    
+    chat_messages = session.chat_messages.all().order_by("created_at")
+
     form = ChatMessageForm()
     if request.method == "POST":
         form = ChatMessageForm(request.POST)
@@ -31,7 +33,7 @@ def chat_room(request, session_id):
             chat.save()
             # After posting, redirect to the same chat room to clear the form.
             return redirect(reverse("streaming:session_chat", args=[session_id]))
-    
+
     context = {
         "session": session,
         "chat_messages": chat_messages,

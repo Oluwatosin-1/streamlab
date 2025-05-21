@@ -4,11 +4,16 @@ import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, redirect
-from streaming.models import StreamingConfiguration, StreamingSession, StreamingPlatformAccount
+from streaming.models import (
+    StreamingConfiguration,
+    StreamingSession,
+    StreamingPlatformAccount,
+)
 from streaming.tasks import relay_to_social_task
 from django.contrib.auth.decorators import login_required
 
 logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 def srs_on_publish(request):
@@ -27,20 +32,22 @@ def srs_on_publish(request):
 
     stream_key = data.get("stream")
     app = data.get("app")
-    
+
     # Look up the configuration using the provided stream key
     try:
-        config = StreamingConfiguration.objects.get(stream_key=stream_key, is_active=True)
+        config = StreamingConfiguration.objects.get(
+            stream_key=stream_key, is_active=True
+        )
     except StreamingConfiguration.DoesNotExist:
         logger.error("Stream key not found: %s", stream_key)
         return JsonResponse({"error": "Stream key not found."}, status=404)
 
     # Create a new streaming session
     session = StreamingSession.objects.create(configuration=config, status="live")
-    
+
     # Retrieve connected social accounts for the user
     social_accounts = StreamingPlatformAccount.objects.filter(user=config.user)
-    
+
     # For each connected social account with valid RTMP details, trigger a relay task
     for account in social_accounts:
         if account.rtmp_url and account.stream_key:
@@ -49,6 +56,7 @@ def srs_on_publish(request):
 
     logger.info("SRS on_publish processed for stream key: %s", stream_key)
     return JsonResponse({"status": "ok", "session_uuid": str(session.session_uuid)})
+
 
 @csrf_exempt
 def srs_on_unpublish(request):
@@ -62,9 +70,11 @@ def srs_on_unpublish(request):
         return JsonResponse({"error": "Invalid JSON."}, status=400)
 
     stream_key = data.get("stream")
-    
+
     try:
-        config = StreamingConfiguration.objects.get(stream_key=stream_key, is_active=True)
+        config = StreamingConfiguration.objects.get(
+            stream_key=stream_key, is_active=True
+        )
     except StreamingConfiguration.DoesNotExist:
         logger.error("Stream key not found on unpublish: %s", stream_key)
         return JsonResponse({"error": "Stream key not found."}, status=404)
