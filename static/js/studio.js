@@ -93,10 +93,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   }
   relay.startRelayMonitoring(
-    cfg.dataset.relayStatusUrl,
-    relayBody,
-    5000
-  );
+   relayStatusUrl,            // url base, e.g. "/streaming/relay_status/"
+   sessionId,                 // numeric/session UUID part
+   relayBody,                 // <tbody> you’re filling
+   path => `/static/${path}`, // maps "img/platforms/*.png" -> "/static/…"
+   5000                       // poll interval (ms)
+ );
 
   // 4️⃣ Warn on unload if still streaming
   window.addEventListener('beforeunload', e => {
@@ -205,16 +207,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Relay manual refresh
   refreshRelaysBtn.addEventListener('click', () =>
-    relay.updateRelayStatus(sessionId, relayBody, path => `/static/${path}`)
+    relay.updateRelayStatus(relayStatusUrl, sessionId, relayBody, path => `/static/${path}`)
   );
 
-  // Recording controls
-  startRecordBtn.addEventListener('click', () =>
-    recording.startRecording(liveStream, startRecordBtn, stopRecordBtn)
-  );
+  // --- Recording controls ---------------------------------------------
+  startRecordBtn.addEventListener('click', () => {
+    // Pick whichever stream is actually available
+    const streamToRecord = liveStream || previewStream;
+    recording.startRecording(streamToRecord, startRecordBtn, stopRecordBtn);
+  });
+
   stopRecordBtn.addEventListener('click', () =>
     recording.stopRecording(sessionUuid, startRecordBtn, stopRecordBtn)
   );
+
 
   // Chat controls
   if (refreshChatBtn) {
@@ -224,9 +230,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (sendChatBtn) {
     // On “Send”
-  sendBtn.addEventListener('click', () =>
-  chat.sendChat(sendChatUrl, sessionUuid, inputEl.value, chatContainer, inputEl, csrfToken)
-);
+  sendChatBtn.addEventListener('click', () =>
+   chat.sendChat(sendChatUrl, sessionUuid, chatInput.value, chatContainer, chatInput, csrfToken)
+ );
     chatInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') sendChatBtn.click();
     });
@@ -241,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
   try {
     await relay.restartRelay(restartBase, accId, csrfToken);
-    await relay.updateRelayStatus(fetchBase, sessionId, relayBody, path => `/static/${path}`);
+    await relay.updateRelayStatus(relayStatusUrl, sessionId, relayBody, path => `/static/${path}`);
   } catch (err) {
     console.error(err);
     alert('Failed to restart relay: ' + err.message);

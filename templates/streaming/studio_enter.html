@@ -292,36 +292,24 @@
   </div></div>
 </div>
 
-<!-- Runtime config for studio.js -->
-<script type="module" src="{% static 'js/studio.js' %}"></script> 
-{% comment %} <div id="studio-config"
-     data-session-uuid="{{ session_uuid }}"
-     data-session-id="{{ session.id }}"
-     data-fetch-chat-url="{% url 'streaming:fetch_chat_messages' %}"
-     data-send-chat-url="{% url 'streaming:send_chat_message' session.session_uuid %}"
-     data-relay-status-url="{% url 'streaming:relay_status' session.id %}"
-     data-go-live-url="{% url 'streaming:go_live' config.id %}"
-     data-stop-live-url="{% url 'streaming:stop_live' session.id %}"
-     data-csrf-token="{{ csrf_token }}"
-></div> {% endcomment %}
- 
+{#  🔻  Runtime-config div — keep all data-attrs studio.js expects  🔻 #}
 <div id="studio-config"
      data-session-uuid="{{ session_uuid }}"
+     data-session-id="{{ session.id }}"
      data-record-mode="{{ record_mode|yesno:"true,false" }}"
      data-stream-key="{{ config.stream_key }}"
      data-config-id="{{ config.id }}"
-     data-session-id="{{ session.id }}"
+
+     data-fetch-chat-url="{% url 'streaming:fetch_chat_messages' %}"
+     data-send-chat-url="{% url 'streaming:send_chat_message' session_uuid=session_uuid %}"
+     data-relay-status-url="{% url 'streaming:relay_status' session.id %}"
+     data-relay-restart-url="{% url 'streaming:restart_relay' 0 %}"   {# id placeholder #}
+     data-go-live-url="{% url 'streaming:go_live' config.id %}"
+     data-stop-live-url="{% url 'streaming:stop_live' session.id %}"
+
      data-csrf-token="{{ csrf_token }}">
 </div>
-{% comment %}
-All client logic now lives in:
-  - static/js/camera.js
-  - static/js/recording.js
-  - static/js/relay.js
-  - static/js/chat.js
-  - static/js/streaming.js
-  - static/js/studio.js  ← entry point that wires everything up
-{% endcomment %}
 
+{#  🔻  ONE module include — after the config div  🔻 #}
 <script type="module" src="{% static 'js/studio.js' %}"></script>
-{% endblock %}
+{% endblock %} 

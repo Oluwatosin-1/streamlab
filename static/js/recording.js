@@ -6,25 +6,26 @@ let isRecording      = false;
 let currentStream    = null;
 
 /**
- * Internal: create a MediaRecorder on `currentStream` and begin capturing.
- * If it later stops due to a stream switch, we auto‑restart as long as isRecording==true.
+ * Internal helper: spins up a MediaRecorder on currentStream
+ * and begins capturing. When it fires "stop" (e.g. on a stream swap),
+ * we automatically restart a new segment if isRecording is still true.
  */
 function _startSegment() {
   if (!currentStream) {
-    console.error('No stream available for recording');
+    console.error('Recording: no stream available');
     return;
   }
 
-  let options = { mimeType: 'video/webm;codecs=vp9', bitsPerSecond: 2_500_000 };
+  // Preferred options; fallback if the browser doesn't support them
+  const options = { mimeType: 'video/webm;codecs=vp9', bitsPerSecond: 2_500_000 };
   try {
     mediaRecorder = new MediaRecorder(currentStream, options);
   } catch (err) {
-    console.error('Failed to create MediaRecorder:', err);
+    console.warn('Recording: preferred options failed, trying default', err);
     try {
-      // Fallback without explicit options
       mediaRecorder = new MediaRecorder(currentStream);
     } catch (err2) {
-      console.error('MediaRecorder not supported:', err2);
+      console.error('Recording not supported by this browser', err2);
       return;
     }
   }
@@ -36,35 +37,33 @@ function _startSegment() {
   };
 
   mediaRecorder.onstop = () => {
-    // If we're still in “recording” mode, that means we triggered this stop
-    // to swap streams → start a new segment automatically.
+    // If the user hasn't clicked Stop, this was triggered by a stream swap—
+    // so we immediately start a new segment on the updated currentStream.
     if (isRecording) {
       _startSegment();
     }
   };
 
-  // Begin segment; collects data every 1 second
+  // Start collecting data segments every 1 second
   mediaRecorder.start(1000);
 }
 
 /**
- * Begin recording the provided MediaStream.
- * Disables the “Start” button and enables the “Stop” button.
+ * Begin recording the given MediaStream.
+ * Disables the "Start" button and enables the "Stop" button.
  *
- * @param {MediaStream} stream   – the video/audio source to record
+ * @param {MediaStream} stream   – the source to record
  * @param {HTMLButtonElement} startBtn
  * @param {HTMLButtonElement} stopBtn
  */
 export function startRecording(stream, startBtn, stopBtn) {
   if (isRecording) return;
   if (!stream) {
-    console.warn('startRecording: no stream provided');
     alert('No video source available to record.');
     return;
   }
   if (typeof MediaRecorder === 'undefined') {
-    console.error('MediaRecorder API is not available');
-    alert('Your browser does not support recording.');
+    alert('Recording not supported in this browser.');
     return;
   }
 
@@ -80,33 +79,30 @@ export function startRecording(stream, startBtn, stopBtn) {
 
 /**
  * Notify the recorder that the underlying stream has changed
- * (e.g. on camera switch or screen‑share).
- * Stops the current segment, which triggers onstop→_startSegment()
- * with the new `currentStream`.
+ * (e.g. on camera switch or screen‑share). This stops the
+ * current segment, which triggers onstop → _startSegment()
+ * on the new currentStream.
  *
  * @param {MediaStream} newStream
  */
 export function switchStream(newStream) {
-  if (!isRecording) {
-    currentStream = newStream;
-    return;
-  }
   if (!newStream) {
-    console.warn('switchStream: no newStream provided');
+    console.warn('Recording.switchStream: no newStream provided');
     return;
   }
 
   currentStream = newStream;
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
+
+  if (isRecording && mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
   }
 }
 
 /**
- * Stop the recording entirely and trigger a download of the .webm file.
- * Re‑enables the “Start” button, disables the “Stop” button.
+ * Stop the recording entirely and download a .webm file.
+ * Re‑enables the "Start" button and disables the "Stop" button.
  *
- * @param {string} sessionUuid  – used to name the downloaded file
+ * @param {string} sessionUuid – used to name the downloaded file
  * @param {HTMLButtonElement} startBtn
  * @param {HTMLButtonElement} stopBtn
  */
@@ -118,11 +114,11 @@ export function stopRecording(sessionUuid, startBtn, stopBtn) {
   stopBtn.disabled  = true;
 
   if (!mediaRecorder || mediaRecorder.state !== 'recording') {
-    console.warn('stopRecording: no active MediaRecorder segment');
+    console.warn('Recording.stopRecording: no active segment to stop');
     return;
   }
 
-  // Once this final segment stops, download exactly once.
+  // Once this final segment stops, download the result exactly once
   mediaRecorder.addEventListener('stop', () => {
     const blob = new Blob(recordedChunks, { type: 'video/webm' });
     const url  = URL.createObjectURL(blob);
