@@ -212,10 +212,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- Recording controls ---------------------------------------------
   startRecordBtn.addEventListener('click', () => {
-    // Pick whichever stream is actually available
-    const streamToRecord = liveStream || previewStream;
-    recording.startRecording(streamToRecord, startRecordBtn, stopRecordBtn);
-  });
+   // if we're in local-record mode, record the preview stream
+   const streamToRecord = recordMode ? previewStream : liveStream;
+   recording.startRecording(streamToRecord, startRecordBtn, stopRecordBtn);
+ });
 
   stopRecordBtn.addEventListener('click', () =>
     recording.stopRecording(sessionUuid, startRecordBtn, stopRecordBtn)

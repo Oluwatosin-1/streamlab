@@ -301,7 +301,7 @@
      data-config-id="{{ config.id }}"
 
      data-fetch-chat-url="{% url 'streaming:fetch_chat_messages' %}"
-     data-send-chat-url="{% url 'streaming:send_chat_message' session_uuid=session_uuid %}"
+     data-send-chat-url="{% url 'streaming:send_chat_message' %}"
      data-relay-status-url="{% url 'streaming:relay_status' session.id %}"
      data-relay-restart-url="{% url 'streaming:restart_relay' 0 %}"   {# id placeholder #}
      data-go-live-url="{% url 'streaming:go_live' config.id %}"

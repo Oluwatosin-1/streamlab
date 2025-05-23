@@ -17,6 +17,7 @@ from streaming.views.streaming_views import (
     manage_channels,
     offer,
     relay_status,
+    restart_relay,
     send_chat_message,
     srs_console,
     start_streaming_session,
@@ -140,6 +141,7 @@ urlpatterns = [
      
     path('send_chat_message/<uuid:session_id>/', send_chat_message, name='send_chat_message'),
     path('relay_status/<int:session_id>/', relay_status, name='relay_status'),
+    path("restart_relay/<int:account_id>/", restart_relay, name="restart_relay" ),
     path("go-live/<int:config_id>/", go_live, name="go_live"),
     path("stop-live/<int:session_id>/", end_streaming_session, name="stop_live"),
     path("api/srs/on_publish/", srs_on_publish, name="srs_on_publish"),
